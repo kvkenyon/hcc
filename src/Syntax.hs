@@ -195,13 +195,14 @@ data CExpression
       Bool -- deref structure? (True for `->')
   | CVar
       CId -- identifier (incl. enumeration const)
-  | --   | -- | integer, character, floating point and string constants
-    --     CConst (CConstant a)
 
-    -- | C99 compound literal
-    CCompoundLit
-      CDeclaration
-      [CInitializer] -- type name & initialiser list
+-- \| --   | -- | integer, character, floating point and string constants
+--     CConst (CConstant a)
+
+-- -- | C99 compound literal
+-- CCompoundLit
+--   CDeclaration
+--   [CInitializer] -- type name & initialiser list
 
 -- | C unary operator (K&R A7.3-4)
 data CUnaryOp
