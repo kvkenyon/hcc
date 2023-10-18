@@ -1,6 +1,5 @@
 module Main (main) where
 
-import Lib
-
 main :: IO ()
-main = someFunc
+main = do
+  print "hcc - haskell c compiler"
