@@ -1,6 +1,7 @@
 module Parser where
 
 import Control.Applicative
+import Data.Maybe
 import Parsing
   ( GenLanguageDef (reservedNames, reservedOpNames),
     Parser,
@@ -15,6 +16,7 @@ import Parsing
     getSymbol,
     getWhiteSpace,
     makeTokenParser,
+    optionMaybe,
   )
 import Syntax
 import Text.Parsec (sepBy)
@@ -31,7 +33,6 @@ lexer =
             "while",
             "int",
             "bool",
-            "main",
             "return"
           ],
         reservedOpNames = ["=", "==", "<", "+", "-", "*", "!", "&&", "||"]
@@ -57,7 +58,7 @@ whiteSpace :: Parser ()
 whiteSpace = getWhiteSpace lexer
 
 parseCExternalDeclaration :: Parser CExternalDeclaration
-parseCExternalDeclaration = parseCFunctionDef <|> parseCDecleration
+parseCExternalDeclaration = parseCFunctionDef <|> parseCDeclaration
 
 parseCFunctionDef :: Parser CExternalDeclaration
 parseCFunctionDef = CFuncDefExt <$> cFuncDef
@@ -66,29 +67,53 @@ parseCFunctionDef = CFuncDefExt <$> cFuncDef
       CFunctionDef
         <$> parseCDeclarationSpecifiers
         <*> parseCDeclarator
-        <*> parseCDeclarations
+        <*> (symbol "{" *> parseCDeclarations)
         <*> parseCStatement
+        <* symbol "}"
 
 parseCStatement :: Parser CStatement
-parseCStatement = undefined
+parseCStatement = CJmpStmt <$> parseReturn
+
+parseReturn :: Parser CJmpStatement
+parseReturn = do
+  whiteSpace
+  reserved "return"
+  whiteSpace
+  i <- optionMaybe integer
+  whiteSpace
+  _ <- symbol ";"
+  whiteSpace
+  return $
+    CReturn
+      ( case i of
+          Just x -> Just $ CLiteral x
+          _ -> Nothing
+      )
 
 parseCDeclarations :: Parser [CDeclaration]
-parseCDeclarations = undefined
+parseCDeclarations = return []
 
 parseCDeclarator :: Parser CDeclarator
-parseCDeclarator = undefined
+parseCDeclarator = do
+  ptr <- optionMaybe parseCPointer
+  idStr <- ident
+  reserved "("
+  params <- parseCParameter `sepBy` symbol ","
+  reserved ")"
+  return $ ParameterDecl (CDeclRoot ptr (IdDecl idStr)) params
+
+parseCParameter :: Parser CParameter
+parseCParameter = CParameter <$> parseCDeclarationSpecifiers <*> parseCDeclarator
+
+parseCPointer :: Parser CPointer
+parseCPointer = do
+  reserved "*"
+  tyQual <- optionMaybe (parseTypeQualifier `sepBy` whiteSpace)
+  CPointer tyQual <$> optionMaybe parseCPointer
 
 parseCDeclarationSpecifiers :: Parser [CDeclarationSpecifier]
 parseCDeclarationSpecifiers =
-  ( CTypeSpec
-      <$> parseTypeSpecifier
-      <*> ( do
-              decSpecs <- parseCDeclarationSpecifiers
-              case decSpecs of
-                [] -> return Nothing
-                x -> return $ Just x
-          )
-  )
+  (CTypeSpec <$> parseTypeSpecifier <*> optionMaybe parseCDeclarationSpecifiers)
     `sepBy` whiteSpace
 
 parseTypeSpecifier :: Parser CTypeSpecifier
@@ -103,8 +128,11 @@ parseTypeSpecifier = do
     <|> (reserved "signed" >> return CSignedType)
     <|> (reserved "unsigned" >> return CUnsignedType)
 
-parseCDecleration :: Parser CExternalDeclaration
-parseCDecleration = undefined
+parseTypeQualifier :: Parser CTypeQualifier
+parseTypeQualifier = (CConst <$ reserved "const") <|> (CVolatile <$ reserved "volatile")
+
+parseCDeclaration :: Parser CExternalDeclaration
+parseCDeclaration = undefined
 
 parseCTranslationUnit :: Parser CTranslationUnit
 parseCTranslationUnit = CTranslationUnit <$> parseCExternalDeclaration `sepBy` (symbol ";" <|> symbol "}")

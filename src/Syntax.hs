@@ -6,21 +6,26 @@ type CId = String
 
 data CTranslationUnit where
   CTranslationUnit :: [CExternalDeclaration] -> CTranslationUnit
+  deriving (Show)
 
 data CExternalDeclaration where
   CFuncDefExt :: CFunctionDef -> CExternalDeclaration
   CDeclExt :: CDeclaration -> CExternalDeclaration
+  deriving (Show)
 
 data CFunctionDef where
   CFunctionDef :: [CDeclarationSpecifier] -> CDeclarator -> [CDeclaration] -> CStatement -> CFunctionDef
+  deriving (Show)
 
 data CDeclaration where
   CDeclaration :: [CDeclarationSpecifier] -> Maybe [CInitializer] -> CDeclaration
+  deriving (Show)
 
 data CDeclarationSpecifier where
   CStorageSpec :: CStorageClassSpecifier -> Maybe [CDeclarationSpecifier] -> CDeclarationSpecifier
   CTypeSpec :: CTypeSpecifier -> Maybe [CDeclarationSpecifier] -> CDeclarationSpecifier
   CTypeQual :: CTypeQualifier -> Maybe [CDeclarationSpecifier] -> CDeclarationSpecifier
+  deriving (Show)
 
 data CStorageClassSpecifier where
   CAuto :: CStorageClassSpecifier
@@ -28,6 +33,7 @@ data CStorageClassSpecifier where
   CStatic :: CStorageClassSpecifier
   CExtern :: CStorageClassSpecifier
   CTypeDef :: CStorageClassSpecifier
+  deriving (Show)
 
 data CTypeSpecifier where
   CVoidType :: CTypeSpecifier
@@ -39,10 +45,12 @@ data CTypeSpecifier where
   CDoubleType :: CTypeSpecifier
   CSignedType :: CTypeSpecifier
   CUnsignedType :: CTypeSpecifier
+  deriving (Show)
 
 data CTypeQualifier where
   CConst :: CTypeQualifier
   CVolatile :: CTypeQualifier
+  deriving (Show)
 
 data CDeclarator where
   CDeclRoot :: Maybe CPointer -> CDeclarator -> CDeclarator
@@ -50,23 +58,29 @@ data CDeclarator where
   ConstExprDecl :: CDeclarator -> Maybe CExpression -> CDeclarator
   ParameterDecl :: CDeclarator -> [CParameter] -> CDeclarator
   IdentifierDecl :: CDeclarator -> Maybe [CId] -> CDeclarator
+  deriving (Show)
 
 data CPointer where
   CPointer :: Maybe [CTypeQualifier] -> Maybe CPointer -> CPointer
+  deriving (Show)
 
 data CParameter where
   CParameter :: [CDeclarationSpecifier] -> CDeclarator -> CParameter
+  deriving (Show)
 
 data CInitializer where
   CInitializer :: [CExpression] -> CInitializer
+  deriving (Show)
 
 data CTypeName where
   CTypeName :: [CDeclaration] -> Maybe CAbstractDeclarator -> CTypeName
+  deriving (Show)
 
 data CAbstractDeclarator where
   CAbstDeclRoot :: Maybe CPointer -> Maybe CAbstractDeclarator -> CAbstractDeclarator
   ConstExprAbstDecl :: Maybe CAbstractDeclarator -> Maybe [CExpression] -> CAbstractDeclarator
   ParameterAbstDecl :: Maybe CAbstractDeclarator -> Maybe [CParameter] -> CAbstractDeclarator
+  deriving (Show)
 
 type CTypeDefName = CId
 
@@ -77,28 +91,34 @@ data CStatement where
   CSelectStmt :: CSelectStatement -> CStatement
   CIterStmt :: CIterStatement -> CStatement
   CJmpStmt :: CJmpStatement -> CStatement
+  deriving (Show)
 
 data CSelectStatement where
   IfStmt :: CExpression -> CStatement -> Maybe CStatement -> CSelectStatement
   SwitchStmt :: CExpression -> CStatement -> CSelectStatement
+  deriving (Show)
 
 data CDefaultTag = CDefaultTag
+  deriving (Show)
 
 data CCaseStatement where
   CaseRoot :: CExpression -> CStatement -> CCaseStatement
   CaseStmt :: CId -> CStatement -> CCaseStatement
   DefaultStmt :: CDefaultTag -> CStatement -> CCaseStatement
+  deriving (Show)
 
 data CIterStatement where
   CWhile :: CExpression -> CStatement -> CIterStatement
   CFor :: Maybe CExpression -> Maybe CExpression -> Maybe CExpression -> CStatement -> CIterStatement
   CDoWhile :: CStatement -> CExpression -> CIterStatement
+  deriving (Show)
 
 data CJmpStatement where
   CGoto :: CId -> CJmpStatement
   CContinue :: CJmpStatement
   CBreak :: CJmpStatement
   CReturn :: Maybe CExpression -> CJmpStatement
+  deriving (Show)
 
 data CAssignOp
   = Equal
@@ -195,6 +215,9 @@ data CExpression
       Bool -- deref structure? (True for `->')
   | CVar
       CId -- identifier (incl. enumeration const)
+  | CLiteral
+      Integer
+  deriving (Show)
 
 -- \| --   | -- | integer, character, floating point and string constants
 --     CConst (CConstant a)
