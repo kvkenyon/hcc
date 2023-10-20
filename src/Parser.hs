@@ -1,7 +1,6 @@
 module Parser where
 
 import Control.Applicative
-import Data.Maybe
 import Parsing
   ( GenLanguageDef (reservedNames, reservedOpNames),
     Parser,
@@ -126,7 +125,13 @@ parseCPointer = do
   CPointer tyQual <$> optionMaybe parseCPointer
 
 parseCDeclarationSpecifiers :: Parser [CDeclarationSpecifier]
-parseCDeclarationSpecifiers = (parseStorageDeclSpec <|> parseTypeDeclSpec) `sepBy` whiteSpace
+parseCDeclarationSpecifiers = (parseStorageDeclSpec <|> parseTypeDeclSpec <|> parseTypeQualDeclSpec) `sepBy` whiteSpace
+
+parseTypeQualDeclSpec :: Parser CDeclarationSpecifier
+parseTypeQualDeclSpec = do
+  typeQual <- parseTypeQualifier
+  declSpec <- optionMaybe parseCDeclarationSpecifiers
+  return $ CTypeQual typeQual declSpec
 
 parseTypeDeclSpec :: Parser CDeclarationSpecifier
 parseTypeDeclSpec = do
