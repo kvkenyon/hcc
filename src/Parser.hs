@@ -34,7 +34,12 @@ lexer =
             "while",
             "int",
             "bool",
-            "return"
+            "return",
+            "auto",
+            "register",
+            "static",
+            "extern",
+            "typedef"
           ],
         reservedOpNames = ["=", "==", "<", "+", "-", "*", "!", "&&", "||"]
       }
@@ -59,7 +64,7 @@ whiteSpace :: Parser ()
 whiteSpace = getWhiteSpace lexer
 
 parseCExternalDeclaration :: Parser CExternalDeclaration
-parseCExternalDeclaration = parseCFunctionDef <|> parseCDeclaration
+parseCExternalDeclaration = parseCFunctionDef -- <|> parseCDeclaration
 
 parseCFunctionDef :: Parser CExternalDeclaration
 parseCFunctionDef = CFuncDefExt <$> cFuncDef
@@ -121,9 +126,27 @@ parseCPointer = do
   CPointer tyQual <$> optionMaybe parseCPointer
 
 parseCDeclarationSpecifiers :: Parser [CDeclarationSpecifier]
-parseCDeclarationSpecifiers =
-  (CTypeSpec <$> parseTypeSpecifier <*> optionMaybe parseCDeclarationSpecifiers)
-    `sepBy` whiteSpace
+parseCDeclarationSpecifiers = (parseStorageDeclSpec <|> parseTypeDeclSpec) `sepBy` whiteSpace
+
+parseTypeDeclSpec :: Parser CDeclarationSpecifier
+parseTypeDeclSpec = do
+  typeSpec <- parseTypeSpecifier
+  declSpec <- optionMaybe parseCDeclarationSpecifiers
+  return $ CTypeSpec typeSpec declSpec
+
+parseStorageDeclSpec :: Parser CDeclarationSpecifier
+parseStorageDeclSpec = do
+  stgClass <- parseStorageClassSpecifier
+  declSpec <- optionMaybe parseCDeclarationSpecifiers
+  return $ CStorageSpec stgClass declSpec
+
+parseStorageClassSpecifier :: Parser CStorageClassSpecifier
+parseStorageClassSpecifier = do
+  (reserved "auto" >> return CAuto)
+    <|> (reserved "register" >> return CRegister)
+    <|> (reserved "static" >> return CStatic)
+    <|> (reserved "extern" >> return CExtern)
+    <|> (reserved "typedef" >> return CTypeDef)
 
 parseTypeSpecifier :: Parser CTypeSpecifier
 parseTypeSpecifier = do
