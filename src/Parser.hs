@@ -17,6 +17,7 @@ import Parsing
     getWhiteSpace,
     makeTokenParser,
     optionMaybe,
+    try,
   )
 import Syntax
 import Text.Parsec (sepBy)
@@ -96,11 +97,19 @@ parseCDeclarations = return []
 parseCDeclarator :: Parser CDeclarator
 parseCDeclarator = do
   ptr <- optionMaybe parseCPointer
-  idStr <- ident
-  reserved "("
-  params <- parseCParameter `sepBy` symbol ","
-  reserved ")"
-  return $ ParameterDecl (CDeclRoot ptr (IdDecl idStr)) params
+  CDeclRoot ptr <$> parseDirectDecl
+
+parseDirectDecl :: Parser CDeclarator
+parseDirectDecl = try parseDirectDeclaratorParam <|> parseDirectDeclaratorIdent
+
+parseDirectDeclaratorIdent :: Parser CDeclarator
+parseDirectDeclaratorIdent = IdDecl <$> ident
+
+parseDirectDeclaratorParam :: Parser CDeclarator
+parseDirectDeclaratorParam = do
+  iden <- parseDirectDeclaratorIdent
+  params <- parens (parseCParameter `sepBy` symbol ",")
+  return $ ParameterDecl iden params
 
 parseCParameter :: Parser CParameter
 parseCParameter = CParameter <$> parseCDeclarationSpecifiers <*> parseCDeclarator
