@@ -5,7 +5,6 @@ module Parser where
 
 import Control.Applicative
 import qualified Data.Functor.Identity as I
-import GHC.Generics (M1)
 import Parsing
 import Syntax
 import qualified Text.Parsec.Prim
@@ -29,9 +28,20 @@ lexer =
             "register",
             "static",
             "extern",
-            "typedef"
+            "typedef",
+            "for"
           ],
-        reservedOpNames = ["=", "==", "<", "+", "-", "*", "!", "&&", "||"],
+        reservedOpNames =
+          [ "=",
+            "==",
+            "<",
+            "+",
+            "-",
+            "*",
+            "!",
+            "&&",
+            "||"
+          ],
         commentLine = "//",
         commentStart = "/*",
         commentEnd = "*/"
@@ -95,10 +105,18 @@ parseCFunctionDef = CFuncDefExt <$> cFuncDef
         <* symbol "}"
 
 parseCCmpStatement :: Parser CStatement
-parseCCmpStatement = CCompStmt <$> optionMaybe parseCDeclarations <*> optionMaybe (parseCStatement `sepBy` whiteSpace)
+parseCCmpStatement =
+  CCompStmt
+    <$> optionMaybe parseCDeclarations
+    <*> optionMaybe (parseCStatement `sepBy` whiteSpace)
 
 parseCStatement :: Parser CStatement
-parseCStatement = (CJmpStmt <$> parseReturn) <|> (CExprStmt <$> optionMaybe parseCExpression <* semi) <|> parseIfStmt
+parseCStatement =
+  (CJmpStmt <$> parseReturn)
+    <|> (CExprStmt <$> optionMaybe parseCExpression <* semi)
+    <|> parseIfStmt
+    <|> parseWhileLoop
+    <|> parseForLoop
 
 parseReturn :: Parser CJmpStatement
 parseReturn = do
@@ -124,6 +142,27 @@ parseIfStmt = do
   reserved "else"
   b <- optionMaybe (braces parseCCmpStatement)
   return $ CSelectStmt $ IfStmt test a b
+
+parseWhileLoop :: Parser CStatement
+parseWhileLoop = do
+  reserved "while"
+  test <- parens parseCExpression
+  block <- braces parseCCmpStatement
+  return $ CIterStmt $ CWhile test block
+
+parseForLoop :: Parser CStatement
+parseForLoop = do
+  reserved "for"
+  (a, b, c) <- parens loopConds
+  block <- braces parseCCmpStatement
+  return $ CIterStmt $ CFor a b c block
+  where
+    loopConds =
+      do
+        a <- optionMaybe parseCExpression <* semi
+        b <- optionMaybe parseCExpression <* semi
+        c <- optionMaybe parseCExpression
+        return (a, b, c)
 
 parseCDeclarations :: Parser [CDeclaration]
 parseCDeclarations = try parseCDeclaration `sepBy` whiteSpace
@@ -155,7 +194,12 @@ parseCPointer = do
   CPointer tyQual <$> optionMaybe parseCPointer
 
 parseCDeclarationSpecifiers :: Parser [CDeclarationSpecifier]
-parseCDeclarationSpecifiers = (parseStorageDeclSpec <|> parseTypeDeclSpec <|> parseTypeQualDeclSpec) `sepBy` whiteSpace
+parseCDeclarationSpecifiers =
+  ( parseStorageDeclSpec
+      <|> parseTypeDeclSpec
+      <|> parseTypeQualDeclSpec
+  )
+    `sepBy` whiteSpace
 
 parseTypeQualDeclSpec :: Parser CDeclarationSpecifier
 parseTypeQualDeclSpec = do
@@ -228,10 +272,18 @@ parseCAssignOp =
     <|> (symbol "|=" *> return BOrEq)
 
 parseCAssign :: Parser CExpression
-parseCAssign = CAssign <$> parseCAssignOp <*> parseCExpression <*> parseCExpression
+parseCAssign = do
+  lvalue <- parseCExpression
+  op <- parseCAssignOp
+  CAssign op lvalue <$> parseCExpression
 
 parseCConstExpr :: Parser CExpression
-parseCConstExpr = CConstExpr <$> ((IntConst <$> integer) <|> (DblConst <$> float) <|> (CharConst <$> (symbol "'" *> anyChar <* symbol "'")))
+parseCConstExpr =
+  CConstExpr
+    <$> ( (IntConst <$> integer)
+            <|> (DblConst <$> float)
+            <|> (CharConst <$> (symbol "'" *> anyChar <* symbol "'"))
+        )
 
 parseCVar :: Parser CExpression
 parseCVar = CVar <$> ident
@@ -239,23 +291,31 @@ parseCVar = CVar <$> ident
 parseCComma :: Parser CExpression
 parseCComma = CComma <$> parseCExpression `sepBy` comma
 
-parseCCond :: Parser CExpression
-parseCCond = do
+bottomParser :: Parser CExpression
+bottomParser = do
   test <- topParser
-  ternary test <|> return test
+  ternary test <|> assg test <|> return test
   where
     ternary test = do
       _ <- symbol "?"
       a <- optionMaybe parseCExpression
       _ <- symbol ":"
       CCond test a <$> parseCExpression
+    assg lvalue = do
+      op <- parseCAssignOp
+      CAssign op lvalue <$> parseCExpression
 
 term :: Text.Parsec.Prim.ParsecT String () I.Identity CExpression
-term = try $ parens parseCExpression <|> try parseCConstExpr <|> parseCVar
+term =
+  try $
+    parens parseCExpression
+      <|> try parseCConstExpr
+      <|> parseCVar
 
 table :: [[Operator String () I.Identity CExpression]]
 table =
   [ [prefix "!" (CUnary CNegOp), prefix "-" (CUnary CMinOp)],
+    [postfix "++" (CUnary CPostIncOp), postfix "--" (CUnary CPostDecOp)],
     [ binary "*" (CBinary CMulOp) AssocLeft,
       binary "/" (CBinary CDivOp) AssocLeft,
       binary "%" (CBinary CRmdOp) AssocLeft
@@ -278,7 +338,7 @@ topParser :: Parser CExpression
 topParser = buildExpressionParser table term
 
 parseCExpression :: Text.Parsec.Prim.ParsecT String () I.Identity CExpression
-parseCExpression = buildExpressionParser [] parseCCond
+parseCExpression = buildExpressionParser [] bottomParser
 
 clang :: Parser CTranslationUnit
 clang = whiteSpace *> parseCTranslationUnit <* eof

@@ -24,7 +24,11 @@ int main(unsigned int input)
     }
     else
     {
-        return 0;
+        while (x < y)
+        {
+            x + 1;
+        }
+        return x;
     }
 }
 
