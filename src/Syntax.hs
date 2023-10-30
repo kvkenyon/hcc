@@ -17,8 +17,16 @@ data CFunctionDef where
   CFunctionDef :: [CDeclarationSpecifier] -> CDeclarator -> [CDeclaration] -> CStatement -> CFunctionDef
   deriving (Show)
 
+{--
+DeclSpecs -> Declarator
+DeclSpecs -> Declarator -> = -> Initializer
+
+Initializer
+AssignmentExpr
+{[Initializer]}
+--}
 data CDeclaration where
-  CDeclaration :: [CDeclarationSpecifier] -> Maybe [CInitializer] -> CDeclaration
+  CDeclaration :: [CDeclarationSpecifier] -> CDeclarator -> Maybe [CInitializer] -> CDeclaration
   deriving (Show)
 
 data CDeclarationSpecifier where
@@ -120,6 +128,9 @@ data CJmpStatement where
   CReturn :: Maybe CExpression -> CJmpStatement
   deriving (Show)
 
+data CConstant = IntConst Integer | DblConst Double | CharConst Char
+  deriving (Show)
+
 data CAssignOp
   = Equal
   | TimesEq
@@ -217,15 +228,9 @@ data CExpression
       CId -- identifier (incl. enumeration const)
   | CLiteral
       Integer
+  | --   | -- | integer, character, floating point and string constants
+    CConstExpr CConstant
   deriving (Show)
-
--- \| --   | -- | integer, character, floating point and string constants
---     CConst (CConstant a)
-
--- -- | C99 compound literal
--- CCompoundLit
---   CDeclaration
---   [CInitializer] -- type name & initialiser list
 
 -- | C unary operator (K&R A7.3-4)
 data CUnaryOp

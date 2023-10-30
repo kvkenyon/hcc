@@ -21,5 +21,5 @@ compileCFunctionDef :: CFunctionDef -> String
 compileCFunctionDef (CFunctionDef declSpecs declarator decls stmt) = undefined
 
 compileCDeclaration :: CDeclaration -> String
-compileCDeclaration (CDeclaration declSpecs Nothing) = undefined
-compileCDeclaration (CDeclaration declSpecs (Just inits)) = undefined
+compileCDeclaration (CDeclaration declSpecs declar Nothing) = undefined
+compileCDeclaration (CDeclaration declSpecs declar (Just inits)) = undefined

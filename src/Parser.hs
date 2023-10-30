@@ -1,25 +1,13 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use $>" #-}
 module Parser where
 
 import Control.Applicative
-import Parsing
-  ( GenLanguageDef (reservedNames, reservedOpNames),
-    Parser,
-    TokenParser,
-    emptyDef,
-    eof,
-    getIdentifier,
-    getInteger,
-    getParens,
-    getReserved,
-    getReservedOp,
-    getSymbol,
-    getWhiteSpace,
-    makeTokenParser,
-    optionMaybe,
-    try,
-  )
+import Parsing (GenLanguageDef (commentStart, reservedNames, reservedOpNames), Parser, TokenParser, anyChar, commentEnd, commentLine, emptyDef, eof, getIdentifier, getInteger, getParens, getReserved, getReservedOp, getSymbol, getWhiteSpace, makeTokenParser, optionMaybe, try)
 import Syntax
 import Text.Parsec (sepBy)
+import Text.Parsec.Token (comma, float, semi)
 
 lexer :: TokenParser u
 lexer =
@@ -40,7 +28,10 @@ lexer =
             "extern",
             "typedef"
           ],
-        reservedOpNames = ["=", "==", "<", "+", "-", "*", "!", "&&", "||"]
+        reservedOpNames = ["=", "==", "<", "+", "-", "*", "!", "&&", "||"],
+        commentLine = "//",
+        commentStart = "/*",
+        commentEnd = "*/"
       }
 
 parens :: Parser a -> Parser a
@@ -63,7 +54,7 @@ whiteSpace :: Parser ()
 whiteSpace = getWhiteSpace lexer
 
 parseCExternalDeclaration :: Parser CExternalDeclaration
-parseCExternalDeclaration = parseCFunctionDef -- <|> parseCDeclaration
+parseCExternalDeclaration = try parseCFunctionDef <|> CDeclExt <$> parseCDeclaration
 
 parseCFunctionDef :: Parser CExternalDeclaration
 parseCFunctionDef = CFuncDefExt <$> cFuncDef
@@ -96,7 +87,7 @@ parseReturn = do
       )
 
 parseCDeclarations :: Parser [CDeclaration]
-parseCDeclarations = return []
+parseCDeclarations = parseCDeclaration `sepBy` whiteSpace
 
 parseCDeclarator :: Parser CDeclarator
 parseCDeclarator = do
@@ -120,7 +111,7 @@ parseCParameter = CParameter <$> parseCDeclarationSpecifiers <*> parseCDeclarato
 
 parseCPointer :: Parser CPointer
 parseCPointer = do
-  reserved "*"
+  _ <- symbol "*"
   tyQual <- optionMaybe (parseTypeQualifier `sepBy` whiteSpace)
   CPointer tyQual <$> optionMaybe parseCPointer
 
@@ -165,14 +156,52 @@ parseTypeSpecifier = do
     <|> (reserved "signed" >> return CSignedType)
     <|> (reserved "unsigned" >> return CUnsignedType)
 
+parseCAssignOp :: Parser CAssignOp
+parseCAssignOp =
+  (symbol "=" *> return Equal)
+    <|> (symbol "*=" *> return TimesEq)
+    <|> (symbol "/=" *> return DivEq)
+    <|> (symbol "%=" *> return ModEq)
+    <|> (symbol "+=" *> return PlusEq)
+    <|> (symbol "-=" *> return MinusEq)
+    <|> (symbol "<<=" *> return LShiftEq)
+    <|> (symbol ">>=" *> return RShiftEq)
+    <|> (symbol "&=" *> return BAndEq)
+    <|> (symbol "^=" *> return BXOrEq)
+    <|> (symbol "|=" *> return BOrEq)
+
+parseCAssign :: Parser CExpression
+parseCAssign = CAssign <$> parseCAssignOp <*> parseCExpression <*> parseCExpression
+
+parseCExpression :: Parser CExpression
+parseCExpression = do
+  parseCConstExpr
+
+parseCConstExpr :: Parser CExpression
+parseCConstExpr = CConstExpr <$> ((IntConst <$> integer) <|> (DblConst <$> float lexer) <|> (CharConst <$> (symbol "'" *> anyChar <* symbol "'")))
+
+parseCComma :: Parser CExpression
+parseCComma = CComma <$> parseCExpression `sepBy` comma lexer
+
+parseCCond :: Parser CExpression
+parseCCond = CCond <$> parseCExpression <* symbol "?" <*> optionMaybe parseCExpression <* symbol ":" <*> parseCExpression
+
+parseCInitializer :: Parser CInitializer
+parseCInitializer = CInitializer <$> parseCExpression `sepBy` comma lexer
+
 parseTypeQualifier :: Parser CTypeQualifier
 parseTypeQualifier = (CConst <$ reserved "const") <|> (CVolatile <$ reserved "volatile")
 
-parseCDeclaration :: Parser CExternalDeclaration
-parseCDeclaration = undefined
+parseCDeclaration :: Parser CDeclaration
+parseCDeclaration =
+  CDeclaration
+    <$> parseCDeclarationSpecifiers
+    <*> parseCDeclarator
+    <*> optionMaybe (symbol "=" *> (parseCInitializer `sepBy` comma lexer))
+    <* symbol ";"
 
 parseCTranslationUnit :: Parser CTranslationUnit
-parseCTranslationUnit = CTranslationUnit <$> parseCExternalDeclaration `sepBy` (symbol ";" <|> symbol "}")
+parseCTranslationUnit = CTranslationUnit <$> parseCExternalDeclaration `sepBy` whiteSpace
 
 clang :: Parser CTranslationUnit
 clang = whiteSpace *> parseCTranslationUnit <* eof

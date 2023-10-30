@@ -1,4 +1,8 @@
+{-# LANGUAGE GADTs #-}
+
 module TypeChecker where
+
+import Syntax
 
 {-- Symbol Table
 
@@ -11,4 +15,12 @@ We will represent each symbol name as a String for now (TODO: Use Data.Text for 
 
 A symbol will point to a binding which is the type.
 
+Parameter Name -> Type
+Variable Name -> Type
+Method Name -> [Parameter] ResultType [Variable]
+Struct/Union -> [Variables]
+
 -}
+
+data Symbol where
+  Variable :: CTypeSpecifier -> Symbol
