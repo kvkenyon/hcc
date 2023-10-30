@@ -26,7 +26,7 @@ AssignmentExpr
 {[Initializer]}
 --}
 data CDeclaration where
-  CDeclaration :: [CDeclarationSpecifier] -> CDeclarator -> Maybe [CInitializer] -> CDeclaration
+  CDeclaration :: [CDeclarationSpecifier] -> [CDeclarator] -> Maybe [CInitializer] -> CDeclaration
   deriving (Show)
 
 data CDeclarationSpecifier where
@@ -176,7 +176,7 @@ data CBinaryOp
   | -- | inclusive bitwise or
     COrOp
   | -- | logical and
-    CLndOp
+    CLandOp
   | -- | logical or
     CLorOp
   deriving (Eq, Ord, Show)

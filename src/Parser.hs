@@ -4,16 +4,19 @@
 module Parser where
 
 import Control.Applicative
-import Parsing (GenLanguageDef (commentStart, reservedNames, reservedOpNames), Parser, TokenParser, anyChar, commentEnd, commentLine, emptyDef, eof, getIdentifier, getInteger, getParens, getReserved, getReservedOp, getSymbol, getWhiteSpace, makeTokenParser, optionMaybe, try)
+import qualified Data.Functor.Identity as I
+import GHC.Generics (M1)
+import Parsing
 import Syntax
-import Text.Parsec (sepBy)
-import Text.Parsec.Token (comma, float, semi)
+import qualified Text.Parsec.Prim
 
 lexer :: TokenParser u
 lexer =
   makeTokenParser $
     emptyDef
-      { reservedNames =
+      { opStart = oneOf "-+/*=<>&|!",
+        opLetter = oneOf "-+/*=<>&|!]",
+        reservedNames =
           [ "True",
             "False",
             "if",
@@ -53,6 +56,30 @@ integer = getInteger lexer
 whiteSpace :: Parser ()
 whiteSpace = getWhiteSpace lexer
 
+comma :: Parser String
+comma = getComma lexer
+
+float :: Parser Double
+float = getDouble lexer
+
+semi :: Parser String
+semi = getSemi lexer
+
+braces :: Parser a -> Parser a
+braces = getBraces lexer
+
+operator :: String -> Parser ()
+operator = getReservedOp lexer
+
+binary :: String -> (a -> a -> a) -> Assoc -> Operator String () I.Identity a
+binary name fun = Infix (do operator name; return fun)
+
+prefix :: String -> (a -> a) -> Operator String () I.Identity a
+prefix name fun = Prefix (do operator name; return fun)
+
+postfix :: String -> (a -> a) -> Operator String () I.Identity a
+postfix name fun = Postfix (do operator name; return fun)
+
 parseCExternalDeclaration :: Parser CExternalDeclaration
 parseCExternalDeclaration = try parseCFunctionDef <|> CDeclExt <$> parseCDeclaration
 
@@ -64,30 +91,42 @@ parseCFunctionDef = CFuncDefExt <$> cFuncDef
         <$> parseCDeclarationSpecifiers
         <*> parseCDeclarator
         <*> (symbol "{" *> parseCDeclarations)
-        <*> parseCStatement
+        <*> parseCCmpStatement
         <* symbol "}"
 
+parseCCmpStatement :: Parser CStatement
+parseCCmpStatement = CCompStmt <$> optionMaybe parseCDeclarations <*> optionMaybe (parseCStatement `sepBy` whiteSpace)
+
 parseCStatement :: Parser CStatement
-parseCStatement = CJmpStmt <$> parseReturn
+parseCStatement = (CJmpStmt <$> parseReturn) <|> (CExprStmt <$> optionMaybe parseCExpression <* semi) <|> parseIfStmt
 
 parseReturn :: Parser CJmpStatement
 parseReturn = do
   whiteSpace
   reserved "return"
   whiteSpace
-  i <- optionMaybe integer
+  expr <- optionMaybe parseCExpression
   whiteSpace
   _ <- symbol ";"
   whiteSpace
   return $
     CReturn
-      ( case i of
-          Just x -> Just $ CLiteral x
+      ( case expr of
+          Just e -> Just e
           _ -> Nothing
       )
 
+parseIfStmt :: Parser CStatement
+parseIfStmt = do
+  reserved "if"
+  test <- parens parseCExpression
+  a <- braces parseCCmpStatement
+  reserved "else"
+  b <- optionMaybe (braces parseCCmpStatement)
+  return $ CSelectStmt $ IfStmt test a b
+
 parseCDeclarations :: Parser [CDeclaration]
-parseCDeclarations = parseCDeclaration `sepBy` whiteSpace
+parseCDeclarations = try parseCDeclaration `sepBy` whiteSpace
 
 parseCDeclarator :: Parser CDeclarator
 parseCDeclarator = do
@@ -156,6 +195,24 @@ parseTypeSpecifier = do
     <|> (reserved "signed" >> return CSignedType)
     <|> (reserved "unsigned" >> return CUnsignedType)
 
+parseCInitializer :: Parser CInitializer
+parseCInitializer = CInitializer <$> parseCExpression `sepBy` comma
+
+parseTypeQualifier :: Parser CTypeQualifier
+parseTypeQualifier = (CConst <$ reserved "const") <|> (CVolatile <$ reserved "volatile")
+
+parseCDeclaration :: Parser CDeclaration
+parseCDeclaration =
+  CDeclaration
+    <$> parseCDeclarationSpecifiers
+    <*> parseCDeclarator `sepBy` comma
+    <*> optionMaybe (symbol "=" *> (parseCInitializer `sepBy` comma))
+    <* symbol ";"
+
+parseCTranslationUnit :: Parser CTranslationUnit
+parseCTranslationUnit = CTranslationUnit <$> parseCExternalDeclaration `sepBy` whiteSpace
+
+-- Parse Expressions
 parseCAssignOp :: Parser CAssignOp
 parseCAssignOp =
   (symbol "=" *> return Equal)
@@ -173,35 +230,55 @@ parseCAssignOp =
 parseCAssign :: Parser CExpression
 parseCAssign = CAssign <$> parseCAssignOp <*> parseCExpression <*> parseCExpression
 
-parseCExpression :: Parser CExpression
-parseCExpression = do
-  parseCConstExpr
-
 parseCConstExpr :: Parser CExpression
-parseCConstExpr = CConstExpr <$> ((IntConst <$> integer) <|> (DblConst <$> float lexer) <|> (CharConst <$> (symbol "'" *> anyChar <* symbol "'")))
+parseCConstExpr = CConstExpr <$> ((IntConst <$> integer) <|> (DblConst <$> float) <|> (CharConst <$> (symbol "'" *> anyChar <* symbol "'")))
+
+parseCVar :: Parser CExpression
+parseCVar = CVar <$> ident
 
 parseCComma :: Parser CExpression
-parseCComma = CComma <$> parseCExpression `sepBy` comma lexer
+parseCComma = CComma <$> parseCExpression `sepBy` comma
 
 parseCCond :: Parser CExpression
-parseCCond = CCond <$> parseCExpression <* symbol "?" <*> optionMaybe parseCExpression <* symbol ":" <*> parseCExpression
+parseCCond = do
+  test <- topParser
+  ternary test <|> return test
+  where
+    ternary test = do
+      _ <- symbol "?"
+      a <- optionMaybe parseCExpression
+      _ <- symbol ":"
+      CCond test a <$> parseCExpression
 
-parseCInitializer :: Parser CInitializer
-parseCInitializer = CInitializer <$> parseCExpression `sepBy` comma lexer
+term :: Text.Parsec.Prim.ParsecT String () I.Identity CExpression
+term = try $ parens parseCExpression <|> try parseCConstExpr <|> parseCVar
 
-parseTypeQualifier :: Parser CTypeQualifier
-parseTypeQualifier = (CConst <$ reserved "const") <|> (CVolatile <$ reserved "volatile")
+table :: [[Operator String () I.Identity CExpression]]
+table =
+  [ [prefix "!" (CUnary CNegOp), prefix "-" (CUnary CMinOp)],
+    [ binary "*" (CBinary CMulOp) AssocLeft,
+      binary "/" (CBinary CDivOp) AssocLeft,
+      binary "%" (CBinary CRmdOp) AssocLeft
+    ],
+    [ binary "+" (CBinary CAddOp) AssocLeft,
+      binary "-" (CBinary CSubOp) AssocLeft
+    ],
+    [ binary "==" (CBinary CEqOp) AssocNone,
+      binary "<" (CBinary CLeOp) AssocNone,
+      binary "<=" (CBinary CLeqOp) AssocNone,
+      binary ">=" (CBinary CGeqOp) AssocNone,
+      binary ">" (CBinary CGrOp) AssocNone
+    ],
+    [ binary "&&" (CBinary CLandOp) AssocLeft,
+      binary "||" (CBinary CLorOp) AssocLeft
+    ]
+  ]
 
-parseCDeclaration :: Parser CDeclaration
-parseCDeclaration =
-  CDeclaration
-    <$> parseCDeclarationSpecifiers
-    <*> parseCDeclarator
-    <*> optionMaybe (symbol "=" *> (parseCInitializer `sepBy` comma lexer))
-    <* symbol ";"
+topParser :: Parser CExpression
+topParser = buildExpressionParser table term
 
-parseCTranslationUnit :: Parser CTranslationUnit
-parseCTranslationUnit = CTranslationUnit <$> parseCExternalDeclaration `sepBy` whiteSpace
+parseCExpression :: Text.Parsec.Prim.ParsecT String () I.Identity CExpression
+parseCExpression = buildExpressionParser [] parseCCond
 
 clang :: Parser CTranslationUnit
 clang = whiteSpace *> parseCTranslationUnit <* eof

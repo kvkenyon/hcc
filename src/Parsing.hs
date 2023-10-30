@@ -22,6 +22,10 @@ module Parsing
     getSymbol,
     getWhiteSpace,
     getParens,
+    getComma,
+    getDouble,
+    getSemi,
+    getBraces,
 
     -- * Parsing
     Parser,
@@ -46,7 +50,7 @@ import Data.Functor.Identity
 import qualified Text.Parsec as P
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Text.Parsec.Expr hiding (Operator)
+import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import Text.Parsec.Pos
 import Text.Parsec.Prim
@@ -92,6 +96,18 @@ getWhiteSpace = whiteSpace
 
 getParens :: GenTokenParser s u m -> forall a. P.ParsecT s u m a -> P.ParsecT s u m a
 getParens = parens
+
+getComma :: GenTokenParser s u m -> P.ParsecT s u m String
+getComma = comma
+
+getSemi :: GenTokenParser s u m -> P.ParsecT s u m String
+getSemi = semi
+
+getDouble :: GenTokenParser s u m -> P.ParsecT s u m Double
+getDouble = float
+
+getBraces :: GenTokenParser s u m -> forall a. P.ParsecT s u m a -> P.ParsecT s u m a
+getBraces = braces
 
 -- For more, see http://hackage.haskell.org/package/parsec-3.1.11/docs/Text-Parsec-Token.html
 
