@@ -53,7 +53,7 @@ data CTypeSpecifier where
   CDoubleType :: CTypeSpecifier
   CSignedType :: CTypeSpecifier
   CUnsignedType :: CTypeSpecifier
-  CStructUnionType :: CStructTypeSpecifier -> CTypeSpecifier
+  CStructType :: CStructTypeSpecifier -> CTypeSpecifier
   deriving (Show)
 
 data CStructTypeSpecifier where
@@ -64,7 +64,7 @@ data StructOrUnion = STRUCT | UNION
   deriving (Show)
 
 data CStructDeclaration where
-  CStructDecl :: [CTypeQualifier] -> [CTypeSpecifier] -> [CDeclarator] -> CStructDeclaration
+  CStructDecl :: [CDeclarationSpecifier] -> [CDeclarator] -> CStructDeclaration
   deriving (Show)
 
 data CTypeQualifier where

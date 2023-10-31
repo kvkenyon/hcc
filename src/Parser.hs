@@ -271,6 +271,24 @@ parseTypeSpecifier = do
     <|> (reserved "double" >> return CDoubleType)
     <|> (reserved "signed" >> return CSignedType)
     <|> (reserved "unsigned" >> return CUnsignedType)
+    <|> (reserved "struct" >> parseStructTypeSpec STRUCT)
+    <|> (reserved "union" >> parseStructTypeSpec UNION)
+
+parseStructTypeSpec :: StructOrUnion -> Parser CTypeSpecifier
+parseStructTypeSpec su =
+  do
+    iden <- optionMaybe ident
+    decls <- option [] $ braces parseStruct
+    return $ CStructType $ CStruct su iden decls
+
+parseStruct :: Parser [CStructDeclaration]
+parseStruct = parseStructDeclaration `sepBy` semi
+
+parseStructDeclaration :: Parser CStructDeclaration
+parseStructDeclaration = do
+  declSpecs <- parseCDeclarationSpecifiers
+  decls <- parseCDeclarator `sepBy` comma
+  return $ CStructDecl declSpecs decls
 
 parseCInitializer :: Parser CInitializer
 parseCInitializer = CInitializer <$> parseCExpression `sepBy` comma
