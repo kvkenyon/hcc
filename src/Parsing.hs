@@ -26,6 +26,7 @@ module Parsing
     getDouble,
     getSemi,
     getBraces,
+    getBrackets,
 
     -- * Parsing
     Parser,
@@ -108,6 +109,9 @@ getDouble = float
 
 getBraces :: GenTokenParser s u m -> forall a. P.ParsecT s u m a -> P.ParsecT s u m a
 getBraces = braces
+
+getBrackets :: GenTokenParser s u m -> forall a. P.ParsecT s u m a -> P.ParsecT s u m a
+getBrackets = brackets
 
 -- For more, see http://hackage.haskell.org/package/parsec-3.1.11/docs/Text-Parsec-Token.html
 

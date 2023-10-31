@@ -29,7 +29,18 @@ lexer =
             "static",
             "extern",
             "typedef",
-            "for"
+            "for",
+            "char",
+            "double",
+            "float",
+            "void",
+            "short",
+            "do",
+            "long",
+            "signed",
+            "unsigned",
+            "volatile",
+            "const"
           ],
         reservedOpNames =
           [ "=",
@@ -77,6 +88,9 @@ semi = getSemi lexer
 
 braces :: Parser a -> Parser a
 braces = getBraces lexer
+
+brackets :: Text.Parsec.Prim.ParsecT String u I.Identity a -> Text.Parsec.Prim.ParsecT String u I.Identity a
+brackets = getBrackets lexer
 
 operator :: String -> Parser ()
 operator = getReservedOp lexer
@@ -168,30 +182,49 @@ parseCDeclarations :: Parser [CDeclaration]
 parseCDeclarations = try parseCDeclaration `sepBy` whiteSpace
 
 parseCDeclarator :: Parser CDeclarator
-parseCDeclarator = do
-  ptr <- optionMaybe parseCPointer
-  CDeclRoot ptr <$> parseDirectDecl
+parseCDeclarator = parsePtrDeclarator <|> parseDeclarator
 
-parseDirectDecl :: Parser CDeclarator
-parseDirectDecl = try parseDirectDeclaratorParam <|> parseDirectDeclaratorIdent
-
-parseDirectDeclaratorIdent :: Parser CDeclarator
-parseDirectDeclaratorIdent = IdDecl <$> ident
-
-parseDirectDeclaratorParam :: Parser CDeclarator
-parseDirectDeclaratorParam = do
-  iden <- parseDirectDeclaratorIdent
-  params <- parens (parseCParameter `sepBy` symbol ",")
-  return $ ParameterDecl iden params
-
-parseCParameter :: Parser CParameter
-parseCParameter = CParameter <$> parseCDeclarationSpecifiers <*> parseCDeclarator
+parsePtrDeclarator :: Parser CDeclarator
+parsePtrDeclarator = do
+  ptr <- parseCPointer
+  PtrDeclarator ptr <$> parseCDirectDecl
 
 parseCPointer :: Parser CPointer
 parseCPointer = do
   _ <- symbol "*"
-  tyQual <- optionMaybe (parseTypeQualifier `sepBy` whiteSpace)
+  tyQual <- option [] $ parseTypeQualifier `sepBy` whiteSpace
   CPointer tyQual <$> optionMaybe parseCPointer
+
+parseDeclarator :: Parser CDeclarator
+parseDeclarator = Declarator <$> parseCDirectDecl
+
+parseCDirectDecl :: Parser CDirectDeclarator
+parseCDirectDecl =
+  ( NestedDecl
+      <$> parens parseCDeclarator
+      <*> optionMaybe parseTypeModifier
+  )
+    <|> CIdentDecl <$> ident <*> optionMaybe parseTypeModifier
+
+parseTypeModifier :: Parser CTypeModifier
+parseTypeModifier = parseArrayModifier <|> parseFuncModifier
+
+parseArrayModifier :: Parser CTypeModifier
+parseArrayModifier = ArrayModifier <$> brackets parseCConstExpr <*> optionMaybe parseArrayModifier
+
+parseFuncModifier :: Parser CTypeModifier
+parseFuncModifier = do
+  _ <- symbol "("
+  ids <- option [] (ident `sepBy` comma)
+  params <- option [] $ parseCParameter `sepBy` comma
+  _ <- symbol ")"
+  return $ FuncModifier ids params
+
+parseCParameter :: Parser CParameter
+parseCParameter =
+  CParameter
+    <$> parseCDeclarationSpecifiers
+    <*> parseCDeclarator
 
 parseCDeclarationSpecifiers :: Parser [CDeclarationSpecifier]
 parseCDeclarationSpecifiers =
@@ -243,7 +276,9 @@ parseCInitializer :: Parser CInitializer
 parseCInitializer = CInitializer <$> parseCExpression `sepBy` comma
 
 parseTypeQualifier :: Parser CTypeQualifier
-parseTypeQualifier = (CConst <$ reserved "const") <|> (CVolatile <$ reserved "volatile")
+parseTypeQualifier =
+  (CConst <$ reserved "const")
+    <|> (CVolatile <$ reserved "volatile")
 
 parseCDeclaration :: Parser CDeclaration
 parseCDeclaration =
@@ -254,7 +289,9 @@ parseCDeclaration =
     <* symbol ";"
 
 parseCTranslationUnit :: Parser CTranslationUnit
-parseCTranslationUnit = CTranslationUnit <$> parseCExternalDeclaration `sepBy` whiteSpace
+parseCTranslationUnit =
+  CTranslationUnit
+    <$> parseCExternalDeclaration `sepBy` whiteSpace
 
 -- Parse Expressions
 parseCAssignOp :: Parser CAssignOp

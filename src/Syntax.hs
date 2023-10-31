@@ -61,15 +61,22 @@ data CTypeQualifier where
   deriving (Show)
 
 data CDeclarator where
-  CDeclRoot :: Maybe CPointer -> CDeclarator -> CDeclarator
-  IdDecl :: CId -> CDeclarator
-  ConstExprDecl :: CDeclarator -> Maybe CExpression -> CDeclarator
-  ParameterDecl :: CDeclarator -> [CParameter] -> CDeclarator
-  IdentifierDecl :: CDeclarator -> Maybe [CId] -> CDeclarator
+  PtrDeclarator :: CPointer -> CDirectDeclarator -> CDeclarator
+  Declarator :: CDirectDeclarator -> CDeclarator
   deriving (Show)
 
 data CPointer where
-  CPointer :: Maybe [CTypeQualifier] -> Maybe CPointer -> CPointer
+  CPointer :: [CTypeQualifier] -> Maybe CPointer -> CPointer
+  deriving (Show)
+
+data CDirectDeclarator where
+  CIdentDecl :: CId -> Maybe CTypeModifier -> CDirectDeclarator
+  NestedDecl :: CDeclarator -> Maybe CTypeModifier -> CDirectDeclarator
+  deriving (Show)
+
+data CTypeModifier where
+  ArrayModifier :: CExpression -> Maybe CTypeModifier -> CTypeModifier
+  FuncModifier :: [CId] -> [CParameter] -> CTypeModifier
   deriving (Show)
 
 data CParameter where
