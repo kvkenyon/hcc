@@ -140,6 +140,17 @@ parseCStatement =
     <|> parseCaseStmt
     <|> parseDefaultCaseStmt
     <|> parseBreakStmt
+    <|> parseGoToStmt
+    <|> parseContinueStmt
+
+parseBreakStmt :: Parser CStatement
+parseBreakStmt = reserved "break" *> semi *> return (CJmpStmt CBreak)
+
+parseGoToStmt :: Parser CStatement
+parseGoToStmt = reserved "goto" >> ident >>= \iden -> return $ CJmpStmt $ CGoto iden
+
+parseContinueStmt :: Parser CStatement
+parseContinueStmt = reserved "continue" >> return (CJmpStmt CContinue)
 
 parseReturn :: Parser CJmpStatement
 parseReturn = do
@@ -185,9 +196,6 @@ parseDefaultCaseStmt = do
   reserved "default"
   _ <- symbol ":"
   CCaseStmt . DefaultStmt CDefaultTag <$> parseCStatement
-
-parseBreakStmt :: Parser CStatement
-parseBreakStmt = reserved "break" *> semi *> return (CJmpStmt CBreak)
 
 parseIfStmt :: Parser CStatement
 parseIfStmt = do
@@ -418,16 +426,32 @@ term =
 
 table :: [[Operator String () I.Identity CExpression]]
 table =
-  [ [prefix "!" (CUnary CNegOp), prefix "-" (CUnary CMinOp)],
-    [postfix "++" (CUnary CPostIncOp), postfix "--" (CUnary CPostDecOp)],
+  [ [ prefix "++" (CUnary CPreIncOp),
+      prefix "--" (CUnary CPreDecOp),
+      prefix "&" (CUnary CAdrOp),
+      prefix "*" (CUnary CIndOp),
+      prefix "+" (CUnary CPlusOp),
+      prefix "-" (CUnary CMinOp),
+      prefix "~" (CUnary CCompOp),
+      prefix "!" (CUnary CNegOp)
+    ],
+    [ postfix "++" (CUnary CPostIncOp),
+      postfix "--" (CUnary CPostDecOp)
+    ],
     [ binary "*" (CBinary CMulOp) AssocLeft,
       binary "/" (CBinary CDivOp) AssocLeft,
-      binary "%" (CBinary CRmdOp) AssocLeft
+      binary "%" (CBinary CRmdOp) AssocLeft,
+      binary "<<" (CBinary CShlOp) AssocLeft,
+      binary ">>" (CBinary CShrOp) AssocLeft
     ],
     [ binary "+" (CBinary CAddOp) AssocLeft,
-      binary "-" (CBinary CSubOp) AssocLeft
+      binary "-" (CBinary CSubOp) AssocLeft,
+      binary "&" (CBinary CAndOp) AssocLeft,
+      binary "^" (CBinary CXorOp) AssocLeft,
+      binary "|" (CBinary COrOp) AssocLeft
     ],
     [ binary "==" (CBinary CEqOp) AssocNone,
+      binary "!=" (CBinary CNeqOp) AssocNone,
       binary "<" (CBinary CLeOp) AssocNone,
       binary "<=" (CBinary CLeqOp) AssocNone,
       binary ">=" (CBinary CGeqOp) AssocNone,
