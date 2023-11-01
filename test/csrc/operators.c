@@ -5,6 +5,8 @@ int ops()
     int *px = &x;
     int i, j = 1;
     unsigned int x, y, z;
+    int arr[10];
+    arr[0];
 
     x = 3;
     y = 5;
@@ -26,4 +28,7 @@ int ops()
 
     x != y;
     y &x | y ^ z;
+
+    arr[i];
+    ops();
 }

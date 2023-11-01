@@ -289,7 +289,7 @@ parseCDeclarationSpecifiers =
       <|> parseTypeDeclSpec
       <|> parseTypeQualDeclSpec
   )
-    `sepBy` whiteSpace
+    `sepBy1` whiteSpace
 
 parseTypeQualDeclSpec :: Parser CDeclarationSpecifier
 parseTypeQualDeclSpec = do
@@ -383,12 +383,6 @@ parseCAssignOp =
     <|> (symbol "^=" *> return BXOrEq)
     <|> (symbol "|=" *> return BOrEq)
 
-parseCAssign :: Parser CExpression
-parseCAssign = do
-  lvalue <- parseCExpression
-  op <- parseCAssignOp
-  CAssign op lvalue <$> parseCExpression
-
 parseCConstExpr :: Parser CExpression
 parseCConstExpr =
   CConstExpr
@@ -403,10 +397,29 @@ parseCVar = CVar <$> ident
 parseCComma :: Parser CExpression
 parseCComma = CComma <$> parseCExpression `sepBy` comma
 
+{--
+TODO: Fix assg and arrid when lvalue is not a proper identifier
+arrid isn't in need of an lvalue but it must be a valid array identifier
+The l-value is one of the following:
+
+The name of the variable of any type i.e. ,
+an identifier of integral, floating, pointer, structure, or union type.
+
+A subscript ([ ]) expression that does not evaluate to an array.
+
+A unary-indirection (*) expression that does not refer to an array
+An l-value expression in parentheses.
+
+A const object (a nonmodifiable l-value).
+
+The result of indirection through a pointer, provided that it isn’t a function pointer.
+
+The result of member access through pointer(-> or .)
+--}
 bottomParser :: Parser CExpression
 bottomParser = do
   test <- topParser
-  ternary test <|> assg test <|> return test
+  ternary test <|> assg test <|> arridx test <|> funccall test <|> return test
   where
     ternary test = do
       _ <- symbol "?"
@@ -416,6 +429,10 @@ bottomParser = do
     assg lvalue = do
       op <- parseCAssignOp
       CAssign op lvalue <$> parseCExpression
+    arridx lvalue =
+      CIndex lvalue
+        <$> brackets (parseCConstExpr <|> parseCVar)
+    funccall iden = CCall iden <$> parens (parseCExpression `sepBy` comma)
 
 term :: Text.Parsec.Prim.ParsecT String () I.Identity CExpression
 term =
