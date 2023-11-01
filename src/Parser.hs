@@ -134,6 +134,7 @@ parseCStatement =
     <|> (CExprStmt <$> optionMaybe parseCExpression <* semi)
     <|> parseIfStmt
     <|> parseWhileLoop
+    <|> parseDoWhile
     <|> parseForLoop
     <|> parseSwitchStmt
     <|> parseCaseStmt
@@ -203,6 +204,14 @@ parseWhileLoop = do
   test <- parens parseCExpression
   block <- braces parseCCmpStatement
   return $ CIterStmt $ CWhile test block
+
+parseDoWhile :: Parser CStatement
+parseDoWhile = do
+  reserved "do"
+  block <- braces parseCCmpStatement
+  reserved "while"
+  test <- parens parseCExpression
+  return $ CIterStmt $ CDoWhile block test
 
 parseForLoop :: Parser CStatement
 parseForLoop = do

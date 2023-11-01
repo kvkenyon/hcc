@@ -25,3 +25,13 @@ int forLoop(int size)
         i += 1;
     }
 }
+
+int dowhile(int size)
+{
+    int i = 0;
+    do
+    {
+        i += 1;
+    } while (i < size);
+    return i;
+}
