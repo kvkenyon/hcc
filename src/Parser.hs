@@ -40,7 +40,11 @@ lexer =
             "signed",
             "unsigned",
             "volatile",
-            "const"
+            "const",
+            "break",
+            "case",
+            "switch",
+            "default"
           ],
         reservedOpNames =
           [ "=",
@@ -131,6 +135,10 @@ parseCStatement =
     <|> parseIfStmt
     <|> parseWhileLoop
     <|> parseForLoop
+    <|> parseSwitchStmt
+    <|> parseCaseStmt
+    <|> parseDefaultCaseStmt
+    <|> parseBreakStmt
 
 parseReturn :: Parser CJmpStatement
 parseReturn = do
@@ -147,6 +155,38 @@ parseReturn = do
           Just e -> Just e
           _ -> Nothing
       )
+
+{--
+selection-statement:
+  switch ( expression ) statement
+
+labeled-statement:
+  case constant-expression : statement
+  default : statement
+--}
+parseSwitchStmt :: Parser CStatement
+parseSwitchStmt = do
+  reserved "switch"
+  test <- parens parseCExpression
+  body <- braces parseCCmpStatement
+  let switch = SwitchStmt test body
+  return $ CSelectStmt switch
+
+parseCaseStmt :: Parser CStatement
+parseCaseStmt = do
+  reserved "case"
+  expr <- parseCConstExpr
+  _ <- symbol ":"
+  CCaseStmt . CaseStmt expr <$> parseCStatement
+
+parseDefaultCaseStmt :: Parser CStatement
+parseDefaultCaseStmt = do
+  reserved "default"
+  _ <- symbol ":"
+  CCaseStmt . DefaultStmt CDefaultTag <$> parseCStatement
+
+parseBreakStmt :: Parser CStatement
+parseBreakStmt = reserved "break" *> semi *> return (CJmpStmt CBreak)
 
 parseIfStmt :: Parser CStatement
 parseIfStmt = do

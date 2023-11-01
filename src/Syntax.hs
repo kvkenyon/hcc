@@ -130,8 +130,7 @@ data CDefaultTag = CDefaultTag
   deriving (Show)
 
 data CCaseStatement where
-  CaseRoot :: CExpression -> CStatement -> CCaseStatement
-  CaseStmt :: CId -> CStatement -> CCaseStatement
+  CaseStmt :: CExpression -> CStatement -> CCaseStatement
   DefaultStmt :: CDefaultTag -> CStatement -> CCaseStatement
   deriving (Show)
 
