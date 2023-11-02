@@ -4,6 +4,9 @@ module Syntax where
 
 type CId = String
 
+class HasType a where
+  infer :: a -> CTypeSpecifier
+
 data CTranslationUnit where
   CTranslationUnit :: [CExternalDeclaration] -> CTranslationUnit
   deriving (Show)
