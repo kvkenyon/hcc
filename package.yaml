@@ -38,6 +38,9 @@ ghc-options:
 
 library:
   source-dirs: src
+  build-build-tool-depends:
+    - happy
+    - alex
 
 executables:
   hcc-exe:
