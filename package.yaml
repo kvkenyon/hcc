@@ -18,13 +18,20 @@ extra-source-files:
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
 description: Please see the README on GitHub at <https://github.com/githubuser/hcc#readme>
-
+default-extensions:
+  - OverloadedStrings
+  - GADTs
 dependencies:
   - base >= 4.7 && < 5
   - parsec
   - pretty-simple
   - containers
-
+  - array
+  - bytestring
+  - process >= 1.6.14
+build-build-tool-depends:
+  - happy
+  - alex
 ghc-options:
   - -Wall
   - -Wcompat
@@ -38,9 +45,6 @@ ghc-options:
 
 library:
   source-dirs: src
-  build-build-tool-depends:
-    - happy
-    - alex
 
 executables:
   hcc-exe:

@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Compiler
+      Lexer
       Parser
       Parsing
       Syntax
@@ -36,12 +37,18 @@ library
       Paths_hcc
   hs-source-dirs:
       src
+  default-extensions:
+      OverloadedStrings
+      GADTs
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
+    , bytestring
     , containers
     , parsec
     , pretty-simple
+    , process >=1.6.14
   default-language: Haskell2010
 
 executable hcc-exe
@@ -52,13 +59,19 @@ executable hcc-exe
       Paths_hcc
   hs-source-dirs:
       app
+  default-extensions:
+      OverloadedStrings
+      GADTs
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
+    , bytestring
     , containers
     , hcc
     , parsec
     , pretty-simple
+    , process >=1.6.14
   default-language: Haskell2010
 
 test-suite hcc-test
@@ -70,11 +83,17 @@ test-suite hcc-test
       Paths_hcc
   hs-source-dirs:
       test
+  default-extensions:
+      OverloadedStrings
+      GADTs
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
+    , bytestring
     , containers
     , hcc
     , parsec
     , pretty-simple
+    , process >=1.6.14
   default-language: Haskell2010
