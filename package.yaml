@@ -29,6 +29,7 @@ dependencies:
   - array
   - bytestring
   - process >= 1.6.14
+  - text
 build-build-tool-depends:
   - happy
   - alex

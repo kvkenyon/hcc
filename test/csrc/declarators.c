@@ -20,3 +20,5 @@ int other_object = 37;
 int *const y;
 int volatile *const z;
 int *const volatile w;
+char c = 'abc';
+char c = 'abcd\n';

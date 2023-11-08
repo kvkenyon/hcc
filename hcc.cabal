@@ -49,6 +49,7 @@ library
     , parsec
     , pretty-simple
     , process >=1.6.14
+    , text
   default-language: Haskell2010
 
 executable hcc-exe
@@ -72,6 +73,7 @@ executable hcc-exe
     , parsec
     , pretty-simple
     , process >=1.6.14
+    , text
   default-language: Haskell2010
 
 test-suite hcc-test
@@ -96,4 +98,5 @@ test-suite hcc-test
     , parsec
     , pretty-simple
     , process >=1.6.14
+    , text
   default-language: Haskell2010
