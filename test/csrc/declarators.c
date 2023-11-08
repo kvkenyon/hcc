@@ -5,7 +5,7 @@
  *
  */
 int x;
-int *x;
+int *x2;
 double y[12];
 char *z[12][12];
 int *aptr[10]; // Declares an array of 10 pointers
@@ -14,11 +14,17 @@ int (*pointer)[100]; // Declares a pointer to an array of ten ints
 int f();
 int f1(int (*pointer)[100]);
 int f2(char *z[12][12], int (*pointer)[100]);
-int f3(x, y, z);
+// int f3(x, y, z);
 const int some_object;
 int other_object = 37;
-int *const y;
-int volatile *const z;
+int *const ty;
+int volatile *const zz;
 int *const volatile w;
-char c = 'abc';
-char c = 'abcd\n';
+char c = 'a';
+char c2 = 'a';
+char _x = '\n';
+
+int main()
+{
+    return 2;
+}
