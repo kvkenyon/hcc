@@ -117,6 +117,7 @@ import qualified Lexer as L
 --- %left BAND XOR
 -- %right '~' 
 -- %right PRE PLUS MINUS INDIRECT '&'  '!'
+%right '=' '*=' '/=' '%=' '+=' '-=' '<<=' '>>=' '&=' '|=' '^='
 %left '||' 
 %left '&&'
 %left '|'
@@ -134,6 +135,19 @@ import qualified Lexer as L
 
 variable :: { CId L.Range }
   : identifier { unTok $1 (\range (L.Identifier iden) -> CId range $ BS.unpack iden) }
+
+assign :: {CExpression L.Range}
+  : expr '=' expr {unTok $2 (\range (L.AEq) -> CAssign range (Equal range) $1 $3)}
+  | expr '*=' expr {unTok $2 (\range (L.TimesEq) -> CAssign range (TimesEq range) $1 $3)}
+  | expr '/=' expr {unTok $2 (\range (L.DivEq) -> CAssign range (DivEq range) $1 $3)}
+  | expr '%=' expr {unTok $2 (\range (L.ModEq) -> CAssign range (ModEq range) $1 $3)}
+  | expr '+=' expr {unTok $2 (\range (L.PlusEq) -> CAssign range (PlusEq range) $1 $3)}
+  | expr '-=' expr {unTok $2 (\range (L.MinusEq) -> CAssign range (MinusEq range) $1 $3)}
+  | expr '>>=' expr {unTok $2 (\range (L.RShiftEq) -> CAssign range (RShiftEq range) $1 $3)}
+  | expr '<<=' expr {unTok $2 (\range (L.LShiftEq) -> CAssign range (LShiftEq range) $1 $3)}
+  | expr '&=' expr {unTok $2 (\range (L.AndEq) -> CAssign range (BAndEq range) $1 $3)}
+  | expr '^=' expr {unTok $2 (\range (L.XorEq) -> CAssign range (BXorEq range) $1 $3)}
+  | expr '|=' expr {unTok $2 (\range (L.OrEq) -> CAssign range (BOrEq range) $1 $3)}
 
 unary :: {CExpression L.Range}
   : '++' expr %prec PRE {unTok $1 (\range (L.Inc) -> CUnary range (CPreIncOp range) $2)}
@@ -163,9 +177,9 @@ binary :: {CExpression L.Range}
   | expr '!=' expr {unTok $2 (\range (L.NotEq) -> CBinary range (CNeqOp range) $1 $3)}
   | expr '&&' expr {unTok $2 (\range (L.LAnd) -> CBinary range (CLandOp range) $1 $3)}
   | expr '||' expr {unTok $2 (\range (L.LOr) -> CBinary range (CLorOp range) $1 $3)}
-  | expr '^' expr {unTok $2 (\range (L.Or) -> CBinary range (CLorOp range) $1 $3)}
+  | expr '^' expr {unTok $2 (\range (L.Or) -> CBinary range (CXorOp range) $1 $3)}
   | expr '&' expr {unTok $2 (\range (L.Amp) -> CBinary range (CAndOp range) $1 $3)}
-  | expr '|' expr {unTok $2 (\range (L.Or) -> CBinary range (CLorOp range) $1 $3)}
+  | expr '|' expr {unTok $2 (\range (L.Or) -> CBinary range (COrOp range) $1 $3)}
    
 
 -- TODO: Update types to handle weird c-types like char const with multiple chars
@@ -176,6 +190,7 @@ expr :: {CExpression L.Range }
   | char_const {unTok $1 (\range (L.CharConst c) -> CConstExpr $ CharConst range $ read $ BS.unpack c)}
   | binary {$1}
   | unary {$1}
+  | assign {$1}
 {
   -- | Build a simple node by extracting its token type and range.
 unTok :: L.RangedToken -> (L.Range -> L.Token -> a) -> a

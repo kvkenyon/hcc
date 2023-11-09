@@ -154,7 +154,7 @@ data CAssignOp a
   | LShiftEq a
   | RShiftEq a
   | BAndEq a
-  | BXOrEq a
+  | BXorEq a
   | BOrEq a
   deriving (Show, Eq, Foldable)
 
