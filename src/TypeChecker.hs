@@ -41,28 +41,28 @@ Variables
   -> Type
 
 --}
-type Type = CTypeSpecifier
+-- type Type = CTypeSpecifier
 
-data Binding where
-  -- Variable Type
-  VarBinding :: Type -> Binding
-  -- Return Type -> Local Env (Vars and Params)
-  FuncBinding :: Env -> Type -> Binding
-  -- Struct Type -> Struct Env
-  StructBinding :: Type -> Env -> Binding
+-- data Binding where
+--   -- Variable Type
+--   VarBinding :: Type -> Binding
+--   -- Return Type -> Local Env (Vars and Params)
+--   FuncBinding :: Env -> Type -> Binding
+--   -- Struct Type -> Struct Env
+--   StructBinding :: Type -> Env -> Binding
 
-type Env = Map String Binding
+-- type Env = Map String Binding
 
-data TypeError where
-  Undefined :: String -> TypeError
+-- data TypeError where
+--   Undefined :: String -> TypeError
 
-inferCExpression :: Env -> CExpression -> Either TypeError Type
-inferCExpression _ (CConstExpr (IntConst _)) = Right CIntType
-inferCExpression _ (CConstExpr (DblConst _)) = Right CFloatType
-inferCExpression _ (CConstExpr (CharConst _)) = Right CCharType
+-- inferCExpression :: Env -> CExpression -> Either TypeError Type
+-- inferCExpression _ (CConstExpr (IntConst _)) = Right CIntType
+-- inferCExpression _ (CConstExpr (DblConst _)) = Right CFloatType
+-- inferCExpression _ (CConstExpr (CharConst _)) = Right CCharType
 
-symbolCDeclaration :: Env -> CDeclaration -> Either TypeError ()
-symbolCDeclaration e (CDeclaration specs [(Declarator (CIdentDecl ident Nothing))] Nothing) = undefined
+-- symbolCDeclaration :: Env -> CDeclaration -> Either TypeError ()
+-- symbolCDeclaration e (CDeclaration specs [(Declarator (CIdentDecl ident Nothing))] Nothing) = undefined
 
 -- infer :: Global -> a -> Either TypeError Type
 -- infer genv ctu = undefined

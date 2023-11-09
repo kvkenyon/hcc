@@ -1,279 +1,300 @@
+{-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE GADTs #-}
 
 module Syntax where
 
-type CId = String
+type CId a = String
 
-class HasType a where
-  infer :: a -> CTypeSpecifier
+data CTranslationUnit a where
+  CTranslationUnit :: a -> [CExternalDeclaration a] -> CTranslationUnit a
+  deriving (Show, Foldable)
 
-data CTranslationUnit where
-  CTranslationUnit :: [CExternalDeclaration] -> CTranslationUnit
-  deriving (Show)
+data CExternalDeclaration a where
+  CFuncDefExt :: a -> CFunctionDef a -> CExternalDeclaration a
+  CDeclExt :: a -> CDeclaration a -> CExternalDeclaration a
+  deriving (Show, Foldable)
 
-data CExternalDeclaration where
-  CFuncDefExt :: CFunctionDef -> CExternalDeclaration
-  CDeclExt :: CDeclaration -> CExternalDeclaration
-  deriving (Show)
+data CFunctionDef a where
+  CFunctionDef :: a -> [CDeclarationSpecifier a] -> CDeclarator a -> [CDeclaration a] -> CStatement a -> CFunctionDef a
+  deriving (Show, Foldable)
 
-data CFunctionDef where
-  CFunctionDef :: [CDeclarationSpecifier] -> CDeclarator -> [CDeclaration] -> CStatement -> CFunctionDef
-  deriving (Show)
+data CDeclaration a where
+  CDeclaration :: a -> [CDeclarationSpecifier a] -> [CDeclarator a] -> Maybe [CInitializer a] -> CDeclaration a
+  deriving (Show, Foldable)
 
-{--
-DeclSpecs -> Declarator
-DeclSpecs -> Declarator -> = -> Initializer
+data CDeclarationSpecifier a where
+  CStorageSpec :: a -> CStorageClassSpecifier a -> Maybe [CDeclarationSpecifier a] -> CDeclarationSpecifier a
+  CTypeSpec :: a -> CTypeSpecifier a -> Maybe [CDeclarationSpecifier a] -> CDeclarationSpecifier a
+  CTypeQual :: a -> CTypeQualifier a -> Maybe [CDeclarationSpecifier a] -> CDeclarationSpecifier a
+  deriving (Show, Foldable)
 
-Initializer
-AssignmentExpr
-{[Initializer]}
---}
-data CDeclaration where
-  CDeclaration :: [CDeclarationSpecifier] -> [CDeclarator] -> Maybe [CInitializer] -> CDeclaration
-  deriving (Show)
+data CStorageClassSpecifier a where
+  CAuto :: a -> CStorageClassSpecifier a
+  CRegister :: a -> CStorageClassSpecifier a
+  CStatic :: a -> CStorageClassSpecifier a
+  CExtern :: a -> CStorageClassSpecifier a
+  CTypeDef :: a -> CStorageClassSpecifier a
+  deriving (Show, Foldable)
 
-data CDeclarationSpecifier where
-  CStorageSpec :: CStorageClassSpecifier -> Maybe [CDeclarationSpecifier] -> CDeclarationSpecifier
-  CTypeSpec :: CTypeSpecifier -> Maybe [CDeclarationSpecifier] -> CDeclarationSpecifier
-  CTypeQual :: CTypeQualifier -> Maybe [CDeclarationSpecifier] -> CDeclarationSpecifier
-  deriving (Show)
+data CTypeSpecifier a where
+  CVoidType :: a -> CTypeSpecifier a
+  CCharType :: a -> CTypeSpecifier a
+  CShortType :: a -> CTypeSpecifier a
+  CIntType :: a -> CTypeSpecifier a
+  CLongType :: a -> CTypeSpecifier a
+  CFloatType :: a -> CTypeSpecifier a
+  CDoubleType :: a -> CTypeSpecifier a
+  CSignedType :: a -> CTypeSpecifier a
+  CUnsignedType :: a -> CTypeSpecifier a
+  CStructType :: a -> CStructTypeSpecifier a -> CTypeSpecifier a
+  deriving (Show, Foldable)
 
-data CStorageClassSpecifier where
-  CAuto :: CStorageClassSpecifier
-  CRegister :: CStorageClassSpecifier
-  CStatic :: CStorageClassSpecifier
-  CExtern :: CStorageClassSpecifier
-  CTypeDef :: CStorageClassSpecifier
-  deriving (Show)
+data CStructTypeSpecifier a where
+  CStruct :: a -> StructOrUnion a -> Maybe (CId a) -> [CStructDeclaration a] -> CStructTypeSpecifier a
+  deriving (Show, Foldable)
 
-data CTypeSpecifier where
-  CVoidType :: CTypeSpecifier
-  CCharType :: CTypeSpecifier
-  CShortType :: CTypeSpecifier
-  CIntType :: CTypeSpecifier
-  CLongType :: CTypeSpecifier
-  CFloatType :: CTypeSpecifier
-  CDoubleType :: CTypeSpecifier
-  CSignedType :: CTypeSpecifier
-  CUnsignedType :: CTypeSpecifier
-  CStructType :: CStructTypeSpecifier -> CTypeSpecifier
-  deriving (Show)
+data StructOrUnion a = STRUCT a | UNION a
+  deriving (Show, Foldable)
 
-data CStructTypeSpecifier where
-  CStruct :: StructOrUnion -> Maybe CId -> [CStructDeclaration] -> CStructTypeSpecifier
-  deriving (Show)
+data CStructDeclaration a where
+  CStructDecl :: a -> [CDeclarationSpecifier a] -> [CDeclarator a] -> CStructDeclaration a
+  deriving (Show, Foldable)
 
-data StructOrUnion = STRUCT | UNION
-  deriving (Show)
+data CTypeQualifier a where
+  CConst :: a -> CTypeQualifier a
+  CVolatile :: a -> CTypeQualifier a
+  deriving (Show, Foldable)
 
-data CStructDeclaration where
-  CStructDecl :: [CDeclarationSpecifier] -> [CDeclarator] -> CStructDeclaration
-  deriving (Show)
+data CDeclarator a where
+  PtrDeclarator :: a -> CPointer a -> CDirectDeclarator a -> CDeclarator a
+  Declarator :: a -> CDirectDeclarator a -> CDeclarator a
+  StructDecl :: a -> CDeclarator a -> CExpression a -> CDeclarator a
+  deriving (Show, Foldable)
 
-data CTypeQualifier where
-  CConst :: CTypeQualifier
-  CVolatile :: CTypeQualifier
-  deriving (Show)
+data CPointer a where
+  CPointer :: a -> [CTypeQualifier a] -> Maybe (CPointer a) -> CPointer a
+  deriving (Show, Foldable)
 
-data CDeclarator where
-  PtrDeclarator :: CPointer -> CDirectDeclarator -> CDeclarator
-  Declarator :: CDirectDeclarator -> CDeclarator
-  StructDecl :: CDeclarator -> CExpression -> CDeclarator
-  deriving (Show)
+data CDirectDeclarator a where
+  CIdentDecl :: a -> CId a -> Maybe (CTypeModifier a) -> CDirectDeclarator a
+  NestedDecl :: a -> CDeclarator a -> Maybe (CTypeModifier a) -> CDirectDeclarator a
+  deriving (Show, Foldable)
 
-data CPointer where
-  CPointer :: [CTypeQualifier] -> Maybe CPointer -> CPointer
-  deriving (Show)
+data CTypeModifier a where
+  ArrayModifier :: a -> CExpression a -> Maybe (CTypeModifier a) -> CTypeModifier a
+  FuncModifier :: a -> [CId a] -> [CParameter a] -> CTypeModifier a
+  deriving (Show, Foldable)
 
-data CDirectDeclarator where
-  CIdentDecl :: CId -> Maybe CTypeModifier -> CDirectDeclarator
-  NestedDecl :: CDeclarator -> Maybe CTypeModifier -> CDirectDeclarator
-  deriving (Show)
+data CParameter a where
+  CParameter :: a -> [CDeclarationSpecifier a] -> CDeclarator a -> CParameter a
+  deriving (Show, Foldable)
 
-data CTypeModifier where
-  ArrayModifier :: CExpression -> Maybe CTypeModifier -> CTypeModifier
-  FuncModifier :: [CId] -> [CParameter] -> CTypeModifier
-  deriving (Show)
+data CInitializer a where
+  CInitializer :: a -> [CExpression a] -> CInitializer a
+  deriving (Show, Foldable)
 
-data CParameter where
-  CParameter :: [CDeclarationSpecifier] -> CDeclarator -> CParameter
-  deriving (Show)
+data CTypeName a where
+  CTypeName :: a -> [CDeclaration a] -> Maybe (CAbstractDeclarator a) -> CTypeName a
+  deriving (Show, Foldable)
 
-data CInitializer where
-  CInitializer :: [CExpression] -> CInitializer
-  deriving (Show)
+data CAbstractDeclarator a where
+  CAbstDeclRoot :: a -> Maybe (CPointer a) -> Maybe (CAbstractDeclarator a) -> CAbstractDeclarator a
+  ConstExprAbstDecl :: a -> Maybe (CAbstractDeclarator a) -> Maybe [CExpression a] -> CAbstractDeclarator a
+  ParameterAbstDecl :: a -> Maybe (CAbstractDeclarator a) -> Maybe [CParameter a] -> CAbstractDeclarator a
+  deriving (Show, Foldable)
 
-data CTypeName where
-  CTypeName :: [CDeclaration] -> Maybe CAbstractDeclarator -> CTypeName
-  deriving (Show)
+data CTypeDefName a = CTypeDefName a (CId a)
 
-data CAbstractDeclarator where
-  CAbstDeclRoot :: Maybe CPointer -> Maybe CAbstractDeclarator -> CAbstractDeclarator
-  ConstExprAbstDecl :: Maybe CAbstractDeclarator -> Maybe [CExpression] -> CAbstractDeclarator
-  ParameterAbstDecl :: Maybe CAbstractDeclarator -> Maybe [CParameter] -> CAbstractDeclarator
-  deriving (Show)
+data CStatement a where
+  CCaseStmt :: a -> CCaseStatement a -> CStatement a
+  CExprStmt :: a -> Maybe (CExpression a) -> CStatement a
+  CCompStmt :: a -> Maybe [CDeclaration a] -> Maybe [CStatement a] -> CStatement a
+  CSelectStmt :: a -> CSelectStatement a -> CStatement a
+  CIterStmt :: a -> CIterStatement a -> CStatement a
+  CJmpStmt :: a -> CJmpStatement a -> CStatement a
+  deriving (Show, Foldable)
 
-type CTypeDefName = CId
+data CSelectStatement a where
+  IfStmt :: a -> (CExpression a) -> CStatement a -> Maybe (CStatement a) -> CSelectStatement a
+  SwitchStmt :: a -> (CExpression a) -> CStatement a -> CSelectStatement a
+  deriving (Show, Foldable)
 
-data CStatement where
-  CCaseStmt :: CCaseStatement -> CStatement
-  CExprStmt :: Maybe CExpression -> CStatement
-  CCompStmt :: Maybe [CDeclaration] -> Maybe [CStatement] -> CStatement
-  CSelectStmt :: CSelectStatement -> CStatement
-  CIterStmt :: CIterStatement -> CStatement
-  CJmpStmt :: CJmpStatement -> CStatement
-  deriving (Show)
+newtype CDefaultTag a = CDefaultTag a
+  deriving (Show, Foldable)
 
-data CSelectStatement where
-  IfStmt :: CExpression -> CStatement -> Maybe CStatement -> CSelectStatement
-  SwitchStmt :: CExpression -> CStatement -> CSelectStatement
-  deriving (Show)
+data CCaseStatement a where
+  CaseStmt :: a -> (CExpression a) -> CStatement a -> CCaseStatement a
+  DefaultStmt :: a -> CDefaultTag a -> CStatement a -> CCaseStatement a
+  deriving (Show, Foldable)
 
-data CDefaultTag = CDefaultTag
-  deriving (Show)
+data CIterStatement a where
+  CWhile :: a -> (CExpression a) -> CStatement a -> CIterStatement a
+  CFor :: a -> Maybe (CExpression a) -> Maybe (CExpression a) -> Maybe (CExpression a) -> CStatement a -> CIterStatement a
+  CDoWhile :: a -> CStatement a -> (CExpression a) -> CIterStatement a
+  deriving (Show, Foldable)
 
-data CCaseStatement where
-  CaseStmt :: CExpression -> CStatement -> CCaseStatement
-  DefaultStmt :: CDefaultTag -> CStatement -> CCaseStatement
-  deriving (Show)
+data CJmpStatement a where
+  CGoto :: a -> CId a -> CJmpStatement a
+  CContinue :: a -> CJmpStatement a
+  CBreak :: a -> CJmpStatement a
+  CReturn :: a -> Maybe (CExpression a) -> CJmpStatement a
+  deriving (Show, Foldable)
 
-data CIterStatement where
-  CWhile :: CExpression -> CStatement -> CIterStatement
-  CFor :: Maybe CExpression -> Maybe CExpression -> Maybe CExpression -> CStatement -> CIterStatement
-  CDoWhile :: CStatement -> CExpression -> CIterStatement
-  deriving (Show)
+data CConstant a = IntConst a Integer | DblConst a Double | CharConst a Char
+  deriving (Show, Foldable)
 
-data CJmpStatement where
-  CGoto :: CId -> CJmpStatement
-  CContinue :: CJmpStatement
-  CBreak :: CJmpStatement
-  CReturn :: Maybe CExpression -> CJmpStatement
-  deriving (Show)
-
-data CConstant = IntConst Integer | DblConst Double | CharConst Char
-  deriving (Show)
-
-data CAssignOp
-  = Equal
-  | TimesEq
-  | DivEq
-  | ModEq
-  | PlusEq
-  | MinusEq
-  | LShiftEq
-  | RShiftEq
-  | BAndEq
-  | BXOrEq
-  | BOrEq
-  deriving (Show, Eq)
+data CAssignOp a
+  = Equal a
+  | TimesEq a
+  | DivEq a
+  | ModEq a
+  | PlusEq a
+  | MinusEq a
+  | LShiftEq a
+  | RShiftEq a
+  | BAndEq a
+  | BXOrEq a
+  | BOrEq a
+  deriving (Show, Eq, Foldable)
 
 -- | C binary operators (K&R A7.6-15)
-data CBinaryOp
-  = CMulOp
-  | CDivOp
+data CBinaryOp a
+  = CMulOp a
+  | CDivOp a
   | -- | remainder of division
-    CRmdOp
-  | CAddOp
-  | CSubOp
+    CRmdOp a
+  | CAddOp a
+  | CSubOp a
   | -- | shift left
-    CShlOp
+    CShlOp a
   | -- | shift right
-    CShrOp
+    CShrOp a
   | -- | less
-    CLeOp
+    CLeOp a
   | -- | greater
-    CGrOp
+    CGrOp a
   | -- | less or equal
-    CLeqOp
+    CLeqOp a
   | -- | greater or equal
-    CGeqOp
+    CGeqOp a
   | -- | equal
-    CEqOp
+    CEqOp a
   | -- | not equal
-    CNeqOp
+    CNeqOp a
   | -- | bitwise and
-    CAndOp
+    CAndOp a
   | -- | exclusive bitwise or
-    CXorOp
+    CXorOp a
   | -- | inclusive bitwise or
-    COrOp
+    COrOp a
   | -- | logical and
-    CLandOp
+    CLandOp a
   | -- | logical or
-    CLorOp
-  deriving (Eq, Ord, Show)
+    CLorOp a
+  deriving (Eq, Ord, Show, Foldable)
 
-data CExpression
+data CExpression a
   = CComma
-      [CExpression] -- comma expression list, n >= 2
+      a
+      [CExpression a] -- comma expression list, n >= 2
   | CAssign
-      CAssignOp -- assignment operator
-      CExpression -- l-value
-      CExpression -- r-value
-  | CCond
-      CExpression -- conditional
-      (Maybe CExpression) -- true-expression (GNU allows omitting)
-      CExpression -- false-expression
-  | CBinary
-      CBinaryOp -- binary operator
-      CExpression -- lhs
-      CExpression -- rhs
-  | CCast
-      CDeclaration -- type name
-      CExpression
+      a
+      (CAssignOp a) -- assignment operator
+      (CExpression a) -- l-value
+      (CExpression a)
+  | -- r-value
+    CCond
+      a
+      (CExpression a)
+      -- conditional
+      (Maybe (CExpression a)) -- true-expression (GNU allows omitting)
+      (CExpression a)
+  | -- false-expression
+    CBinary
+      a
+      (CBinaryOp a) -- binary operator
+      (CExpression a)
+      -- lhs
+      (CExpression a)
+  | -- rhs
+    CCast
+      a
+      (CDeclaration a) -- type name
+      (CExpression a)
   | CUnary
-      CUnaryOp -- unary operator
-      CExpression
+      a
+      (CUnaryOp a)
+      -- unary operator
+      (CExpression a)
   | CSizeofExpr
-      CExpression
+      a
+      (CExpression a)
   | CSizeofType
-      CDeclaration -- type name
+      a
+      (CDeclaration a) -- type name
   | CAlignofExpr
-      CExpression
+      a
+      (CExpression a)
   | CAlignofType
-      CDeclaration -- type name
+      a
+      (CDeclaration a) -- type name
   | CComplexReal
-      CExpression -- real part of complex number
-  | CComplexImag
-      CExpression -- imaginary part of complex number
-  | CIndex
-      CExpression -- array
-      CExpression -- index
-  | CCall
-      CExpression -- function
-      [CExpression] -- arguments
+      a
+      (CExpression a)
+  | -- real part of complex number
+    CComplexImag
+      a
+      (CExpression a)
+  | -- imaginary part of complex number
+    CIndex
+      a
+      (CExpression a)
+      -- array
+      (CExpression a)
+  | -- index
+    CCall
+      a
+      (CExpression a)
+      -- function
+      [CExpression a] -- arguments
   | CMember
-      CExpression -- structure
-      CId -- member name
+      a
+      (CExpression a)
+      -- structure
+      (CId a)
+      -- member name
       Bool -- deref structure? (True for `->')
   | CVar
-      CId -- identifier (incl. enumeration const)
-  | CLiteral
+      a
+      (CId a)
+  | -- identifier (incl. enumeration const)
+    CLiteral
+      a
       Integer
   | --   | -- | integer, character, floating point and string constants
-    CConstExpr CConstant
-  deriving (Show)
+    CConstExpr a (CConstant a)
+  deriving (Show, Foldable)
 
 -- | C unary operator (K&R A7.3-4)
-data CUnaryOp
+data CUnaryOp a
   = -- | prefix increment operator
-    CPreIncOp
+    CPreIncOp a
   | -- | prefix decrement operator
-    CPreDecOp
+    CPreDecOp a
   | -- | postfix increment operator
-    CPostIncOp
+    CPostIncOp a
   | -- | postfix decrement operator
-    CPostDecOp
+    CPostDecOp a
   | -- | address operator
-    CAdrOp
+    CAdrOp a
   | -- | indirection operator
-    CIndOp
+    CIndOp a
   | -- | prefix plus
-    CPlusOp
+    CPlusOp a
   | -- | prefix minus
-    CMinOp
+    CMinOp a
   | -- | one's complement
-    CCompOp
+    CCompOp a
   | -- | logical negation
-    CNegOp
-  deriving (Eq, Ord, Show)
+    CNegOp a
+  deriving (Eq, Ord, Show, Foldable)

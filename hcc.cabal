@@ -28,7 +28,6 @@ library
       Compiler
       Lexer
       Parser
-      Parsing
       Syntax
       TypeChecker
   other-modules:

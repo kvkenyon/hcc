@@ -154,7 +154,7 @@ tokens :-
 <0> "}" {tok RBrace}
 <0> "*" {tok Star}
 <0> ";" {tok SemiColon}
-<0> "..." {tok Elippsis}
+<0> "..." {tok Ellipsis}
 -- Strings
 <0> @string_literal { tokStringLit }
 -- Identifier
@@ -294,7 +294,7 @@ data Token =
   RBrace |
   Star |
   SemiColon |
-  Elippsis |
+  Ellipsis |
   -- Constants
   IntConst ByteString |
   CharConst ByteString |
