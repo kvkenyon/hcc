@@ -14,7 +14,7 @@ import Syntax
 import qualified Lexer as L
 }
 
-%name clang expr
+%name clang stmt 
 %tokentype { L.RangedToken }
 %error { parseError }
 %monad { L.Alex } { >>= } { pure }
@@ -158,7 +158,6 @@ exprs : {- empty -}    { [] }
 index :: {CExpression L.Range}
   : expr '[' expr ']' {CIndex (info $1 <-> L.rtRange $4) $1 $3}
 
-
 unary :: {CExpression L.Range}
   : '++' expr %prec PRE {unTok $1 (\range (L.Inc) -> CUnary range (CPreIncOp range) $2)}
   | expr '++' {unTok $2 (\range (L.Inc) -> CUnary range (CPostIncOp range) $1)}
@@ -210,6 +209,18 @@ expr :: {CExpression L.Range }
   | call {$1}
   | index {$1}
   | '(' expr ')' {$2}
+
+
+stmt :: {CStatement L.Range}
+  : expr ';' {CExprStmt (info $1 <-> L.rtRange $2) (Just $1)}
+  | if_stmt {CSelectStmt (info $1) $1}
+  | ';' {CExprStmt (L.rtRange $1) Nothing}
+
+if_stmt :: {CSelectStatement L.Range}
+  : if '(' expr ')' '{' stmt '}' else '{' stmt '}' {IfStmt (L.rtRange $1 <-> L.rtRange $11) $3 $6 (Just $10)}
+  | if '(' expr ')' '{' stmt '}' else stmt {IfStmt (L.rtRange $1 <-> info $9) $3 $6 (Just $9)}
+  | if '(' expr ')' stmt {IfStmt (L.rtRange $1 <-> info $5) $3 $5 Nothing}
+  | if '(' expr ')' '{' stmt '}' {IfStmt (L.rtRange $1 <-> info $6) $3 $6 Nothing}
 {
 
 
