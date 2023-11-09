@@ -110,13 +110,7 @@ import qualified Lexer as L
   '...'      { L.RangedToken L.Ellipsis _ }
 
 %expect 0 
--- %left ','
--- %right '=' '+=' '-=' '/=' '%=' '<<=' '>>=' '&=' 
--- %right TERN
--- %left '||'
---- %left BAND XOR
--- %right '~' 
--- %right PRE PLUS MINUS INDIRECT '&'  '!'
+%left ','
 %right '=' '*=' '/=' '%=' '+=' '-=' '<<=' '>>=' '&=' '|=' '^='
 %left '||' 
 %left '&&'
@@ -129,9 +123,8 @@ import qualified Lexer as L
 %left '+' '-' 
 %left '*' '/' '%' 
 %right PRE DRF ADR POS NEG '~' '!'
-%left '++' '--' 
+%left '++' '--' '->' '.' '(' ')'
 %%
-
 
 variable :: { CId L.Range }
   : identifier { unTok $1 (\range (L.Identifier iden) -> CId range $ BS.unpack iden) }
@@ -148,6 +141,17 @@ assign :: {CExpression L.Range}
   | expr '&=' expr {unTok $2 (\range (L.AndEq) -> CAssign range (BAndEq range) $1 $3)}
   | expr '^=' expr {unTok $2 (\range (L.XorEq) -> CAssign range (BXorEq range) $1 $3)}
   | expr '|=' expr {unTok $2 (\range (L.OrEq) -> CAssign range (BOrEq range) $1 $3)}
+
+member :: {CExpression L.Range}
+  : expr '->' variable {unTok $2 (\range (L.Arrow) -> CMember range $1 $3 True)}
+  | expr '.' variable {unTok $2 (\range (L.Dot) -> CMember range $1 $3 False)}
+
+call :: {CExpression L.Range}
+  : expr '(' exprs ')'  {CCall (info $1 <-> L.rtRange $4) $1 (reverse $3)}
+
+exprs : {- empty -}    { [] } 
+      | expr           { [$1] }
+      | exprs ',' expr { $3 : $1 }
 
 unary :: {CExpression L.Range}
   : '++' expr %prec PRE {unTok $1 (\range (L.Inc) -> CUnary range (CPreIncOp range) $2)}
@@ -191,7 +195,11 @@ expr :: {CExpression L.Range }
   | binary {$1}
   | unary {$1}
   | assign {$1}
+  | member {$1}
+  | call {$1}
 {
+
+
   -- | Build a simple node by extracting its token type and range.
 unTok :: L.RangedToken -> (L.Range -> L.Token -> a) -> a
 unTok (L.RangedToken tok range) ctor = ctor range tok
