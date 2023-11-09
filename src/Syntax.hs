@@ -258,21 +258,7 @@ data CExpression a
   | CSizeofType
       a
       (CDeclaration a) -- type name
-  | CAlignofExpr
-      a
-      (CExpression a)
-  | CAlignofType
-      a
-      (CDeclaration a) -- type name
-  | CComplexReal
-      a
-      (CExpression a)
-  | -- real part of complex number
-    CComplexImag
-      a
-      (CExpression a)
-  | -- imaginary part of complex number
-    CIndex
+  | CIndex
       a
       (CExpression a)
       -- array

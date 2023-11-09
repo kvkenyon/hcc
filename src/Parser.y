@@ -122,8 +122,8 @@ import qualified Lexer as L
 %left '<<' '>>'
 %left '+' '-' 
 %left '*' '/' '%' 
-%right PRE DRF ADR POS NEG '~' '!'
-%left '++' '--' '->' '.' '(' ')'
+%right PRE DRF ADR POS NEG '~' '!' sizeof
+%left '++' '--' '->' '.' '(' ')' '[' ']'
 %%
 
 variable :: { CId L.Range }
@@ -153,6 +153,10 @@ exprs : {- empty -}    { [] }
       | expr           { [$1] }
       | exprs ',' expr { $3 : $1 }
 
+index :: {CExpression L.Range}
+  : expr '[' expr ']' {CIndex (info $1 <-> L.rtRange $4) $1 $3}
+
+
 unary :: {CExpression L.Range}
   : '++' expr %prec PRE {unTok $1 (\range (L.Inc) -> CUnary range (CPreIncOp range) $2)}
   | expr '++' {unTok $2 (\range (L.Inc) -> CUnary range (CPostIncOp range) $1)}
@@ -164,6 +168,7 @@ unary :: {CExpression L.Range}
   | '-' expr  %prec NEG {unTok $1 (\range (L.Minus) -> CUnary range (CMinOp range) $2)}
   | '~' expr  {unTok $1 (\range (L.Complement) -> CUnary range (CCompOp range) $2)}
   | '!' expr  {unTok $1 (\range (L.Bang) -> CUnary range (CNegOp range) $2)}
+  | sizeof expr {CSizeofExpr (L.rtRange $1 <-> info $2) $2}
 
 binary :: {CExpression L.Range}
   : expr '+' expr {unTok $2 (\range (L.Plus) -> CBinary range (CAddOp range) $1 $3)}
@@ -186,7 +191,7 @@ binary :: {CExpression L.Range}
   | expr '|' expr {unTok $2 (\range (L.Or) -> CBinary range (COrOp range) $1 $3)}
    
 
--- TODO: Update types to handle weird c-types like char const with multiple chars
+-- TODO: Update types to handle weird c-types like char with multiple chars
 expr :: {CExpression L.Range }
   : variable {CVar $1}
   | integer_const {unTok $1 (\range (L.IntConst int) -> CConstExpr $ IntConst range $ read $ BS.unpack int)}
@@ -197,6 +202,8 @@ expr :: {CExpression L.Range }
   | assign {$1}
   | member {$1}
   | call {$1}
+  | index {$1}
+  | '(' expr ')' {$2}
 {
 
 
