@@ -35,22 +35,8 @@ terminal unsigned is unused
 terminal void is unused
 terminal volatile is unused
 terminal while is unused
-terminal '-' is unused
-terminal '/' is unused
-terminal '&&' is unused
-terminal '||' is unused
 terminal 'sizeof' is unused
-terminal '%' is unused
 terminal '=' is unused
-terminal '==' is unused
-terminal '!=' is unused
-terminal '!' is unused
-terminal '<' is unused
-terminal '<=' is unused
-terminal '>' is unused
-terminal '>=' is unused
-terminal '~' is unused
-terminal '|' is unused
 terminal '(' is unused
 terminal ')' is unused
 terminal '[' is unused
@@ -58,11 +44,9 @@ terminal ']' is unused
 terminal '.' is unused
 terminal ':' is unused
 terminal '->' is unused
-terminal '<<' is unused
-terminal '>>' is unused
-terminal '^' is unused
 terminal '?' is unused
 terminal '*=' is unused
+terminal '/=' is unused
 terminal '%=' is unused
 terminal '+=' is unused
 terminal '-=' is unused
@@ -91,14 +75,33 @@ Grammar
 	unary -> '&' expr                                  (6)
 	unary -> '*' expr                                  (7)
 	unary -> '+' expr                                  (8)
-	binary -> expr '+' expr                            (9)
-	binary -> expr '*' expr                            (10)
-	expr -> variable                                   (11)
-	expr -> integer_const                              (12)
-	expr -> float_const                                (13)
-	expr -> char_const                                 (14)
-	expr -> binary                                     (15)
-	expr -> unary                                      (16)
+	unary -> '-' expr                                  (9)
+	unary -> '~' expr                                  (10)
+	unary -> '!' expr                                  (11)
+	binary -> expr '+' expr                            (12)
+	binary -> expr '*' expr                            (13)
+	binary -> expr '-' expr                            (14)
+	binary -> expr '/' expr                            (15)
+	binary -> expr '%' expr                            (16)
+	binary -> expr '<<' expr                           (17)
+	binary -> expr '>>' expr                           (18)
+	binary -> expr '<' expr                            (19)
+	binary -> expr '>' expr                            (20)
+	binary -> expr '>=' expr                           (21)
+	binary -> expr '<=' expr                           (22)
+	binary -> expr '==' expr                           (23)
+	binary -> expr '!=' expr                           (24)
+	binary -> expr '&&' expr                           (25)
+	binary -> expr '||' expr                           (26)
+	binary -> expr '^' expr                            (27)
+	binary -> expr '&' expr                            (28)
+	binary -> expr '|' expr                            (29)
+	expr -> variable                                   (30)
+	expr -> integer_const                              (31)
+	expr -> float_const                                (32)
+	expr -> char_const                                 (33)
+	expr -> binary                                     (34)
+	expr -> unary                                      (35)
 
 -----------------------------------------------------------------------------
 Terminals
@@ -172,7 +175,8 @@ Terminals
 	'^'            { L.RangedToken L.Xor _ }
 	'?'            { L.RangedToken L.QMark _ }
 	'*='           { L.RangedToken L.TimesEq _ }
-	'%='           { L.RangedToken L.DivEq _ }
+	'/='           { L.RangedToken L.DivEq _ }
+	'%='           { L.RangedToken L.ModEq _ }
 	'+='           { L.RangedToken L.PlusEq _ }
 	'-='           { L.RangedToken L.MinusEq _ }
 	'<<='          { L.RangedToken L.LShiftEq _ }
@@ -193,9 +197,9 @@ Non-terminals
 -----------------------------------------------------------------------------
 	%start_clang    rule  0
 	variable        rule  1
-	unary           rules 2, 3, 4, 5, 6, 7, 8
-	binary          rules 9, 10
-	expr            rules 11, 12, 13, 14, 15, 16
+	unary           rules 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+	binary          rules 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29
+	expr            rules 30, 31, 32, 33, 34, 35
 
 -----------------------------------------------------------------------------
 States
@@ -209,10 +213,13 @@ State 0
 	float_const    shift, and enter state 8
 	char_const     shift, and enter state 9
 	'+'            shift, and enter state 10
-	'*'            shift, and enter state 11
-	'++'           shift, and enter state 12
-	'--'           shift, and enter state 13
-	'&'            shift, and enter state 14
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
 
 	variable       goto state 3
 	unary          goto state 4
@@ -231,43 +238,107 @@ State 2
 	variable -> identifier .                            (rule 1)
 
 	'+'            reduce using rule 1
+	'-'            reduce using rule 1
 	'*'            reduce using rule 1
+	'/'            reduce using rule 1
 	'++'           reduce using rule 1
 	'--'           reduce using rule 1
+	'&&'           reduce using rule 1
+	'||'           reduce using rule 1
+	'%'            reduce using rule 1
+	'=='           reduce using rule 1
+	'!='           reduce using rule 1
+	'<'            reduce using rule 1
+	'<='           reduce using rule 1
+	'>'            reduce using rule 1
+	'>='           reduce using rule 1
+	'&'            reduce using rule 1
+	'|'            reduce using rule 1
+	'<<'           reduce using rule 1
+	'>>'           reduce using rule 1
+	'^'            reduce using rule 1
 	%eof           reduce using rule 1
 
 
 State 3
 
-	expr -> variable .                                  (rule 11)
+	expr -> variable .                                  (rule 30)
 
-	'+'            reduce using rule 11
-	'*'            reduce using rule 11
-	'++'           reduce using rule 11
-	'--'           reduce using rule 11
-	%eof           reduce using rule 11
+	'+'            reduce using rule 30
+	'-'            reduce using rule 30
+	'*'            reduce using rule 30
+	'/'            reduce using rule 30
+	'++'           reduce using rule 30
+	'--'           reduce using rule 30
+	'&&'           reduce using rule 30
+	'||'           reduce using rule 30
+	'%'            reduce using rule 30
+	'=='           reduce using rule 30
+	'!='           reduce using rule 30
+	'<'            reduce using rule 30
+	'<='           reduce using rule 30
+	'>'            reduce using rule 30
+	'>='           reduce using rule 30
+	'&'            reduce using rule 30
+	'|'            reduce using rule 30
+	'<<'           reduce using rule 30
+	'>>'           reduce using rule 30
+	'^'            reduce using rule 30
+	%eof           reduce using rule 30
 
 
 State 4
 
-	expr -> unary .                                     (rule 16)
+	expr -> unary .                                     (rule 35)
 
-	'+'            reduce using rule 16
-	'*'            reduce using rule 16
-	'++'           reduce using rule 16
-	'--'           reduce using rule 16
-	%eof           reduce using rule 16
+	'+'            reduce using rule 35
+	'-'            reduce using rule 35
+	'*'            reduce using rule 35
+	'/'            reduce using rule 35
+	'++'           reduce using rule 35
+	'--'           reduce using rule 35
+	'&&'           reduce using rule 35
+	'||'           reduce using rule 35
+	'%'            reduce using rule 35
+	'=='           reduce using rule 35
+	'!='           reduce using rule 35
+	'<'            reduce using rule 35
+	'<='           reduce using rule 35
+	'>'            reduce using rule 35
+	'>='           reduce using rule 35
+	'&'            reduce using rule 35
+	'|'            reduce using rule 35
+	'<<'           reduce using rule 35
+	'>>'           reduce using rule 35
+	'^'            reduce using rule 35
+	%eof           reduce using rule 35
 
 
 State 5
 
-	expr -> binary .                                    (rule 15)
+	expr -> binary .                                    (rule 34)
 
-	'+'            reduce using rule 15
-	'*'            reduce using rule 15
-	'++'           reduce using rule 15
-	'--'           reduce using rule 15
-	%eof           reduce using rule 15
+	'+'            reduce using rule 34
+	'-'            reduce using rule 34
+	'*'            reduce using rule 34
+	'/'            reduce using rule 34
+	'++'           reduce using rule 34
+	'--'           reduce using rule 34
+	'&&'           reduce using rule 34
+	'||'           reduce using rule 34
+	'%'            reduce using rule 34
+	'=='           reduce using rule 34
+	'!='           reduce using rule 34
+	'<'            reduce using rule 34
+	'<='           reduce using rule 34
+	'>'            reduce using rule 34
+	'>='           reduce using rule 34
+	'&'            reduce using rule 34
+	'|'            reduce using rule 34
+	'<<'           reduce using rule 34
+	'>>'           reduce using rule 34
+	'^'            reduce using rule 34
+	%eof           reduce using rule 34
 
 
 State 6
@@ -275,47 +346,127 @@ State 6
 	%start_clang -> expr .                              (rule 0)
 	unary -> expr . '++'                                (rule 3)
 	unary -> expr . '--'                                (rule 5)
-	binary -> expr . '+' expr                           (rule 9)
-	binary -> expr . '*' expr                           (rule 10)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
 
-	'+'            shift, and enter state 20
-	'*'            shift, and enter state 21
-	'++'           shift, and enter state 22
-	'--'           shift, and enter state 23
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           shift, and enter state 32
+	'||'           shift, and enter state 33
+	'%'            shift, and enter state 34
+	'=='           shift, and enter state 35
+	'!='           shift, and enter state 36
+	'<'            shift, and enter state 37
+	'<='           shift, and enter state 38
+	'>'            shift, and enter state 39
+	'>='           shift, and enter state 40
+	'&'            shift, and enter state 41
+	'|'            shift, and enter state 42
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            shift, and enter state 45
 	%eof           accept
 
 
 State 7
 
-	expr -> integer_const .                             (rule 12)
+	expr -> integer_const .                             (rule 31)
 
-	'+'            reduce using rule 12
-	'*'            reduce using rule 12
-	'++'           reduce using rule 12
-	'--'           reduce using rule 12
-	%eof           reduce using rule 12
+	'+'            reduce using rule 31
+	'-'            reduce using rule 31
+	'*'            reduce using rule 31
+	'/'            reduce using rule 31
+	'++'           reduce using rule 31
+	'--'           reduce using rule 31
+	'&&'           reduce using rule 31
+	'||'           reduce using rule 31
+	'%'            reduce using rule 31
+	'=='           reduce using rule 31
+	'!='           reduce using rule 31
+	'<'            reduce using rule 31
+	'<='           reduce using rule 31
+	'>'            reduce using rule 31
+	'>='           reduce using rule 31
+	'&'            reduce using rule 31
+	'|'            reduce using rule 31
+	'<<'           reduce using rule 31
+	'>>'           reduce using rule 31
+	'^'            reduce using rule 31
+	%eof           reduce using rule 31
 
 
 State 8
 
-	expr -> float_const .                               (rule 13)
+	expr -> float_const .                               (rule 32)
 
-	'+'            reduce using rule 13
-	'*'            reduce using rule 13
-	'++'           reduce using rule 13
-	'--'           reduce using rule 13
-	%eof           reduce using rule 13
+	'+'            reduce using rule 32
+	'-'            reduce using rule 32
+	'*'            reduce using rule 32
+	'/'            reduce using rule 32
+	'++'           reduce using rule 32
+	'--'           reduce using rule 32
+	'&&'           reduce using rule 32
+	'||'           reduce using rule 32
+	'%'            reduce using rule 32
+	'=='           reduce using rule 32
+	'!='           reduce using rule 32
+	'<'            reduce using rule 32
+	'<='           reduce using rule 32
+	'>'            reduce using rule 32
+	'>='           reduce using rule 32
+	'&'            reduce using rule 32
+	'|'            reduce using rule 32
+	'<<'           reduce using rule 32
+	'>>'           reduce using rule 32
+	'^'            reduce using rule 32
+	%eof           reduce using rule 32
 
 
 State 9
 
-	expr -> char_const .                                (rule 14)
+	expr -> char_const .                                (rule 33)
 
-	'+'            reduce using rule 14
-	'*'            reduce using rule 14
-	'++'           reduce using rule 14
-	'--'           reduce using rule 14
-	%eof           reduce using rule 14
+	'+'            reduce using rule 33
+	'-'            reduce using rule 33
+	'*'            reduce using rule 33
+	'/'            reduce using rule 33
+	'++'           reduce using rule 33
+	'--'           reduce using rule 33
+	'&&'           reduce using rule 33
+	'||'           reduce using rule 33
+	'%'            reduce using rule 33
+	'=='           reduce using rule 33
+	'!='           reduce using rule 33
+	'<'            reduce using rule 33
+	'<='           reduce using rule 33
+	'>'            reduce using rule 33
+	'>='           reduce using rule 33
+	'&'            reduce using rule 33
+	'|'            reduce using rule 33
+	'<<'           reduce using rule 33
+	'>>'           reduce using rule 33
+	'^'            reduce using rule 33
+	%eof           reduce using rule 33
 
 
 State 10
@@ -327,17 +478,42 @@ State 10
 	float_const    shift, and enter state 8
 	char_const     shift, and enter state 9
 	'+'            shift, and enter state 10
-	'*'            shift, and enter state 11
-	'++'           shift, and enter state 12
-	'--'           shift, and enter state 13
-	'&'            shift, and enter state 14
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
 
 	variable       goto state 3
 	unary          goto state 4
 	binary         goto state 5
-	expr           goto state 19
+	expr           goto state 25
 
 State 11
+
+	unary -> '-' . expr                                 (rule 9)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 24
+
+State 12
 
 	unary -> '*' . expr                                 (rule 7)
 
@@ -346,17 +522,20 @@ State 11
 	float_const    shift, and enter state 8
 	char_const     shift, and enter state 9
 	'+'            shift, and enter state 10
-	'*'            shift, and enter state 11
-	'++'           shift, and enter state 12
-	'--'           shift, and enter state 13
-	'&'            shift, and enter state 14
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
 
 	variable       goto state 3
 	unary          goto state 4
 	binary         goto state 5
-	expr           goto state 18
+	expr           goto state 23
 
-State 12
+State 13
 
 	unary -> '++' . expr                                (rule 2)
 
@@ -365,17 +544,20 @@ State 12
 	float_const    shift, and enter state 8
 	char_const     shift, and enter state 9
 	'+'            shift, and enter state 10
-	'*'            shift, and enter state 11
-	'++'           shift, and enter state 12
-	'--'           shift, and enter state 13
-	'&'            shift, and enter state 14
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
 
 	variable       goto state 3
 	unary          goto state 4
 	binary         goto state 5
-	expr           goto state 17
+	expr           goto state 22
 
-State 13
+State 14
 
 	unary -> '--' . expr                                (rule 4)
 
@@ -384,17 +566,64 @@ State 13
 	float_const    shift, and enter state 8
 	char_const     shift, and enter state 9
 	'+'            shift, and enter state 10
-	'*'            shift, and enter state 11
-	'++'           shift, and enter state 12
-	'--'           shift, and enter state 13
-	'&'            shift, and enter state 14
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
 
 	variable       goto state 3
 	unary          goto state 4
 	binary         goto state 5
-	expr           goto state 16
+	expr           goto state 21
 
-State 14
+State 15
+
+	unary -> '!' . expr                                 (rule 11)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 20
+
+State 16
+
+	unary -> '~' . expr                                 (rule 10)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 19
+
+State 17
 
 	unary -> '&' . expr                                 (rule 6)
 
@@ -403,185 +632,1695 @@ State 14
 	float_const    shift, and enter state 8
 	char_const     shift, and enter state 9
 	'+'            shift, and enter state 10
-	'*'            shift, and enter state 11
-	'++'           shift, and enter state 12
-	'--'           shift, and enter state 13
-	'&'            shift, and enter state 14
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
 
 	variable       goto state 3
 	unary          goto state 4
 	binary         goto state 5
-	expr           goto state 15
-
-State 15
-
-	unary -> expr . '++'                                (rule 3)
-	unary -> expr . '--'                                (rule 5)
-	unary -> '&' expr .                                 (rule 6)
-	binary -> expr . '+' expr                           (rule 9)
-	binary -> expr . '*' expr                           (rule 10)
-
-	'+'            reduce using rule 6
-	'*'            reduce using rule 6
-	'++'           reduce using rule 6
-	'--'           reduce using rule 6
-	%eof           reduce using rule 6
-
-
-State 16
-
-	unary -> expr . '++'                                (rule 3)
-	unary -> '--' expr .                                (rule 4)
-	unary -> expr . '--'                                (rule 5)
-	binary -> expr . '+' expr                           (rule 9)
-	binary -> expr . '*' expr                           (rule 10)
-
-	'+'            reduce using rule 4
-	'*'            reduce using rule 4
-	'++'           reduce using rule 4
-	'--'           reduce using rule 4
-	%eof           reduce using rule 4
-
-
-State 17
-
-	unary -> '++' expr .                                (rule 2)
-	unary -> expr . '++'                                (rule 3)
-	unary -> expr . '--'                                (rule 5)
-	binary -> expr . '+' expr                           (rule 9)
-	binary -> expr . '*' expr                           (rule 10)
-
-	'+'            reduce using rule 2
-	'*'            reduce using rule 2
-	'++'           reduce using rule 2
-	'--'           reduce using rule 2
-	%eof           reduce using rule 2
-
+	expr           goto state 18
 
 State 18
 
 	unary -> expr . '++'                                (rule 3)
 	unary -> expr . '--'                                (rule 5)
-	unary -> '*' expr .                                 (rule 7)
-	binary -> expr . '+' expr                           (rule 9)
-	binary -> expr . '*' expr                           (rule 10)
+	unary -> '&' expr .                                 (rule 6)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
 
-	'+'            reduce using rule 7
-	'*'            reduce using rule 7
-	'++'           shift, and enter state 22
-	'--'           shift, and enter state 23
-	%eof           reduce using rule 7
+	'+'            reduce using rule 6
+	'-'            reduce using rule 6
+	'*'            reduce using rule 6
+	'/'            reduce using rule 6
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 6
+	'||'           reduce using rule 6
+	'%'            reduce using rule 6
+	'=='           reduce using rule 6
+	'!='           reduce using rule 6
+	'<'            reduce using rule 6
+	'<='           reduce using rule 6
+	'>'            reduce using rule 6
+	'>='           reduce using rule 6
+	'&'            reduce using rule 6
+	'|'            reduce using rule 6
+	'<<'           reduce using rule 6
+	'>>'           reduce using rule 6
+	'^'            reduce using rule 6
+	%eof           reduce using rule 6
 
 
 State 19
 
 	unary -> expr . '++'                                (rule 3)
 	unary -> expr . '--'                                (rule 5)
-	unary -> '+' expr .                                 (rule 8)
-	binary -> expr . '+' expr                           (rule 9)
-	binary -> expr . '*' expr                           (rule 10)
+	unary -> '~' expr .                                 (rule 10)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
 
-	'+'            reduce using rule 8
-	'*'            shift, and enter state 21
-	'++'           shift, and enter state 22
-	'--'           shift, and enter state 23
-	%eof           reduce using rule 8
+	'+'            reduce using rule 10
+	'-'            reduce using rule 10
+	'*'            reduce using rule 10
+	'/'            reduce using rule 10
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 10
+	'||'           reduce using rule 10
+	'%'            reduce using rule 10
+	'=='           reduce using rule 10
+	'!='           reduce using rule 10
+	'<'            reduce using rule 10
+	'<='           reduce using rule 10
+	'>'            reduce using rule 10
+	'>='           reduce using rule 10
+	'&'            reduce using rule 10
+	'|'            reduce using rule 10
+	'<<'           reduce using rule 10
+	'>>'           reduce using rule 10
+	'^'            reduce using rule 10
+	%eof           reduce using rule 10
 
 
 State 20
 
-	binary -> expr '+' . expr                           (rule 9)
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	unary -> '!' expr .                                 (rule 11)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
 
-	identifier     shift, and enter state 2
-	integer_const  shift, and enter state 7
-	float_const    shift, and enter state 8
-	char_const     shift, and enter state 9
-	'+'            shift, and enter state 10
-	'*'            shift, and enter state 11
-	'++'           shift, and enter state 12
-	'--'           shift, and enter state 13
-	'&'            shift, and enter state 14
+	'+'            reduce using rule 11
+	'-'            reduce using rule 11
+	'*'            reduce using rule 11
+	'/'            reduce using rule 11
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 11
+	'||'           reduce using rule 11
+	'%'            reduce using rule 11
+	'=='           reduce using rule 11
+	'!='           reduce using rule 11
+	'<'            reduce using rule 11
+	'<='           reduce using rule 11
+	'>'            reduce using rule 11
+	'>='           reduce using rule 11
+	'&'            reduce using rule 11
+	'|'            reduce using rule 11
+	'<<'           reduce using rule 11
+	'>>'           reduce using rule 11
+	'^'            reduce using rule 11
+	%eof           reduce using rule 11
 
-	variable       goto state 3
-	unary          goto state 4
-	binary         goto state 5
-	expr           goto state 25
 
 State 21
 
-	binary -> expr '*' . expr                           (rule 10)
+	unary -> expr . '++'                                (rule 3)
+	unary -> '--' expr .                                (rule 4)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
 
-	identifier     shift, and enter state 2
-	integer_const  shift, and enter state 7
-	float_const    shift, and enter state 8
-	char_const     shift, and enter state 9
-	'+'            shift, and enter state 10
-	'*'            shift, and enter state 11
-	'++'           shift, and enter state 12
-	'--'           shift, and enter state 13
-	'&'            shift, and enter state 14
+	'+'            reduce using rule 4
+	'-'            reduce using rule 4
+	'*'            reduce using rule 4
+	'/'            reduce using rule 4
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 4
+	'||'           reduce using rule 4
+	'%'            reduce using rule 4
+	'=='           reduce using rule 4
+	'!='           reduce using rule 4
+	'<'            reduce using rule 4
+	'<='           reduce using rule 4
+	'>'            reduce using rule 4
+	'>='           reduce using rule 4
+	'&'            reduce using rule 4
+	'|'            reduce using rule 4
+	'<<'           reduce using rule 4
+	'>>'           reduce using rule 4
+	'^'            reduce using rule 4
+	%eof           reduce using rule 4
 
-	variable       goto state 3
-	unary          goto state 4
-	binary         goto state 5
-	expr           goto state 24
 
 State 22
 
-	unary -> expr '++' .                                (rule 3)
+	unary -> '++' expr .                                (rule 2)
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
 
-	'+'            reduce using rule 3
-	'*'            reduce using rule 3
-	'++'           reduce using rule 3
-	'--'           reduce using rule 3
-	%eof           reduce using rule 3
+	'+'            reduce using rule 2
+	'-'            reduce using rule 2
+	'*'            reduce using rule 2
+	'/'            reduce using rule 2
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 2
+	'||'           reduce using rule 2
+	'%'            reduce using rule 2
+	'=='           reduce using rule 2
+	'!='           reduce using rule 2
+	'<'            reduce using rule 2
+	'<='           reduce using rule 2
+	'>'            reduce using rule 2
+	'>='           reduce using rule 2
+	'&'            reduce using rule 2
+	'|'            reduce using rule 2
+	'<<'           reduce using rule 2
+	'>>'           reduce using rule 2
+	'^'            reduce using rule 2
+	%eof           reduce using rule 2
 
 
 State 23
 
-	unary -> expr '--' .                                (rule 5)
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	unary -> '*' expr .                                 (rule 7)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
 
-	'+'            reduce using rule 5
-	'*'            reduce using rule 5
-	'++'           reduce using rule 5
-	'--'           reduce using rule 5
-	%eof           reduce using rule 5
+	'+'            reduce using rule 7
+	'-'            reduce using rule 7
+	'*'            reduce using rule 7
+	'/'            reduce using rule 7
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 7
+	'||'           reduce using rule 7
+	'%'            reduce using rule 7
+	'=='           reduce using rule 7
+	'!='           reduce using rule 7
+	'<'            reduce using rule 7
+	'<='           reduce using rule 7
+	'>'            reduce using rule 7
+	'>='           reduce using rule 7
+	'&'            reduce using rule 7
+	'|'            reduce using rule 7
+	'<<'           reduce using rule 7
+	'>>'           reduce using rule 7
+	'^'            reduce using rule 7
+	%eof           reduce using rule 7
 
 
 State 24
 
 	unary -> expr . '++'                                (rule 3)
 	unary -> expr . '--'                                (rule 5)
-	binary -> expr . '+' expr                           (rule 9)
-	binary -> expr . '*' expr                           (rule 10)
-	binary -> expr '*' expr .                           (rule 10)
+	unary -> '-' expr .                                 (rule 9)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
 
-	'+'            reduce using rule 10
-	'*'            reduce using rule 10
-	'++'           shift, and enter state 22
-	'--'           shift, and enter state 23
-	%eof           reduce using rule 10
+	'+'            reduce using rule 9
+	'-'            reduce using rule 9
+	'*'            reduce using rule 9
+	'/'            reduce using rule 9
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 9
+	'||'           reduce using rule 9
+	'%'            reduce using rule 9
+	'=='           reduce using rule 9
+	'!='           reduce using rule 9
+	'<'            reduce using rule 9
+	'<='           reduce using rule 9
+	'>'            reduce using rule 9
+	'>='           reduce using rule 9
+	'&'            reduce using rule 9
+	'|'            reduce using rule 9
+	'<<'           reduce using rule 9
+	'>>'           reduce using rule 9
+	'^'            reduce using rule 9
+	%eof           reduce using rule 9
 
 
 State 25
 
 	unary -> expr . '++'                                (rule 3)
 	unary -> expr . '--'                                (rule 5)
-	binary -> expr . '+' expr                           (rule 9)
-	binary -> expr '+' expr .                           (rule 9)
-	binary -> expr . '*' expr                           (rule 10)
+	unary -> '+' expr .                                 (rule 8)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
 
-	'+'            reduce using rule 9
-	'*'            shift, and enter state 21
-	'++'           shift, and enter state 22
-	'--'           shift, and enter state 23
-	%eof           reduce using rule 9
+	'+'            reduce using rule 8
+	'-'            reduce using rule 8
+	'*'            reduce using rule 8
+	'/'            reduce using rule 8
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 8
+	'||'           reduce using rule 8
+	'%'            reduce using rule 8
+	'=='           reduce using rule 8
+	'!='           reduce using rule 8
+	'<'            reduce using rule 8
+	'<='           reduce using rule 8
+	'>'            reduce using rule 8
+	'>='           reduce using rule 8
+	'&'            reduce using rule 8
+	'|'            reduce using rule 8
+	'<<'           reduce using rule 8
+	'>>'           reduce using rule 8
+	'^'            reduce using rule 8
+	%eof           reduce using rule 8
+
+
+State 26
+
+	binary -> expr '+' . expr                           (rule 12)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 63
+
+State 27
+
+	binary -> expr '-' . expr                           (rule 14)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 62
+
+State 28
+
+	binary -> expr '*' . expr                           (rule 13)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 61
+
+State 29
+
+	binary -> expr '/' . expr                           (rule 15)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 60
+
+State 30
+
+	unary -> expr '++' .                                (rule 3)
+
+	'+'            reduce using rule 3
+	'-'            reduce using rule 3
+	'*'            reduce using rule 3
+	'/'            reduce using rule 3
+	'++'           reduce using rule 3
+	'--'           reduce using rule 3
+	'&&'           reduce using rule 3
+	'||'           reduce using rule 3
+	'%'            reduce using rule 3
+	'=='           reduce using rule 3
+	'!='           reduce using rule 3
+	'<'            reduce using rule 3
+	'<='           reduce using rule 3
+	'>'            reduce using rule 3
+	'>='           reduce using rule 3
+	'&'            reduce using rule 3
+	'|'            reduce using rule 3
+	'<<'           reduce using rule 3
+	'>>'           reduce using rule 3
+	'^'            reduce using rule 3
+	%eof           reduce using rule 3
+
+
+State 31
+
+	unary -> expr '--' .                                (rule 5)
+
+	'+'            reduce using rule 5
+	'-'            reduce using rule 5
+	'*'            reduce using rule 5
+	'/'            reduce using rule 5
+	'++'           reduce using rule 5
+	'--'           reduce using rule 5
+	'&&'           reduce using rule 5
+	'||'           reduce using rule 5
+	'%'            reduce using rule 5
+	'=='           reduce using rule 5
+	'!='           reduce using rule 5
+	'<'            reduce using rule 5
+	'<='           reduce using rule 5
+	'>'            reduce using rule 5
+	'>='           reduce using rule 5
+	'&'            reduce using rule 5
+	'|'            reduce using rule 5
+	'<<'           reduce using rule 5
+	'>>'           reduce using rule 5
+	'^'            reduce using rule 5
+	%eof           reduce using rule 5
+
+
+State 32
+
+	binary -> expr '&&' . expr                          (rule 25)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 59
+
+State 33
+
+	binary -> expr '||' . expr                          (rule 26)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 58
+
+State 34
+
+	binary -> expr '%' . expr                           (rule 16)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 57
+
+State 35
+
+	binary -> expr '==' . expr                          (rule 23)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 56
+
+State 36
+
+	binary -> expr '!=' . expr                          (rule 24)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 55
+
+State 37
+
+	binary -> expr '<' . expr                           (rule 19)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 54
+
+State 38
+
+	binary -> expr '<=' . expr                          (rule 22)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 53
+
+State 39
+
+	binary -> expr '>' . expr                           (rule 20)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 52
+
+State 40
+
+	binary -> expr '>=' . expr                          (rule 21)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 51
+
+State 41
+
+	binary -> expr '&' . expr                           (rule 28)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 50
+
+State 42
+
+	binary -> expr '|' . expr                           (rule 29)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 49
+
+State 43
+
+	binary -> expr '<<' . expr                          (rule 17)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 48
+
+State 44
+
+	binary -> expr '>>' . expr                          (rule 18)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 47
+
+State 45
+
+	binary -> expr '^' . expr                           (rule 27)
+
+	identifier     shift, and enter state 2
+	integer_const  shift, and enter state 7
+	float_const    shift, and enter state 8
+	char_const     shift, and enter state 9
+	'+'            shift, and enter state 10
+	'-'            shift, and enter state 11
+	'*'            shift, and enter state 12
+	'++'           shift, and enter state 13
+	'--'           shift, and enter state 14
+	'!'            shift, and enter state 15
+	'~'            shift, and enter state 16
+	'&'            shift, and enter state 17
+
+	variable       goto state 3
+	unary          goto state 4
+	binary         goto state 5
+	expr           goto state 46
+
+State 46
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr '^' expr .                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 27
+	'||'           reduce using rule 27
+	'%'            shift, and enter state 34
+	'=='           shift, and enter state 35
+	'!='           shift, and enter state 36
+	'<'            shift, and enter state 37
+	'<='           shift, and enter state 38
+	'>'            shift, and enter state 39
+	'>='           shift, and enter state 40
+	'&'            shift, and enter state 41
+	'|'            reduce using rule 27
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            reduce using rule 27
+	%eof           reduce using rule 27
+
+
+State 47
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr '>>' expr .                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 18
+	'||'           reduce using rule 18
+	'%'            shift, and enter state 34
+	'=='           reduce using rule 18
+	'!='           reduce using rule 18
+	'<'            reduce using rule 18
+	'<='           reduce using rule 18
+	'>'            reduce using rule 18
+	'>='           reduce using rule 18
+	'&'            reduce using rule 18
+	'|'            reduce using rule 18
+	'<<'           reduce using rule 18
+	'>>'           reduce using rule 18
+	'^'            reduce using rule 18
+	%eof           reduce using rule 18
+
+
+State 48
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr '<<' expr .                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 17
+	'||'           reduce using rule 17
+	'%'            shift, and enter state 34
+	'=='           reduce using rule 17
+	'!='           reduce using rule 17
+	'<'            reduce using rule 17
+	'<='           reduce using rule 17
+	'>'            reduce using rule 17
+	'>='           reduce using rule 17
+	'&'            reduce using rule 17
+	'|'            reduce using rule 17
+	'<<'           reduce using rule 17
+	'>>'           reduce using rule 17
+	'^'            reduce using rule 17
+	%eof           reduce using rule 17
+
+
+State 49
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+	binary -> expr '|' expr .                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 29
+	'||'           reduce using rule 29
+	'%'            shift, and enter state 34
+	'=='           shift, and enter state 35
+	'!='           shift, and enter state 36
+	'<'            shift, and enter state 37
+	'<='           shift, and enter state 38
+	'>'            shift, and enter state 39
+	'>='           shift, and enter state 40
+	'&'            shift, and enter state 41
+	'|'            reduce using rule 29
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            shift, and enter state 45
+	%eof           reduce using rule 29
+
+
+State 50
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr '&' expr .                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 28
+	'||'           reduce using rule 28
+	'%'            shift, and enter state 34
+	'=='           shift, and enter state 35
+	'!='           shift, and enter state 36
+	'<'            shift, and enter state 37
+	'<='           shift, and enter state 38
+	'>'            shift, and enter state 39
+	'>='           shift, and enter state 40
+	'&'            reduce using rule 28
+	'|'            reduce using rule 28
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            reduce using rule 28
+	%eof           reduce using rule 28
+
+
+State 51
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr '>=' expr .                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 21
+	'||'           reduce using rule 21
+	'%'            shift, and enter state 34
+	'=='           reduce using rule 21
+	'!='           reduce using rule 21
+	'<'            fail
+	'<='           fail
+	'>'            fail
+	'>='           fail
+	'&'            reduce using rule 21
+	'|'            reduce using rule 21
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            reduce using rule 21
+	%eof           reduce using rule 21
+
+
+State 52
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr '>' expr .                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 20
+	'||'           reduce using rule 20
+	'%'            shift, and enter state 34
+	'=='           reduce using rule 20
+	'!='           reduce using rule 20
+	'<'            fail
+	'<='           fail
+	'>'            fail
+	'>='           fail
+	'&'            reduce using rule 20
+	'|'            reduce using rule 20
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            reduce using rule 20
+	%eof           reduce using rule 20
+
+
+State 53
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr '<=' expr .                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 22
+	'||'           reduce using rule 22
+	'%'            shift, and enter state 34
+	'=='           reduce using rule 22
+	'!='           reduce using rule 22
+	'<'            fail
+	'<='           fail
+	'>'            fail
+	'>='           fail
+	'&'            reduce using rule 22
+	'|'            reduce using rule 22
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            reduce using rule 22
+	%eof           reduce using rule 22
+
+
+State 54
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr '<' expr .                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 19
+	'||'           reduce using rule 19
+	'%'            shift, and enter state 34
+	'=='           reduce using rule 19
+	'!='           reduce using rule 19
+	'<'            fail
+	'<='           fail
+	'>'            fail
+	'>='           fail
+	'&'            reduce using rule 19
+	'|'            reduce using rule 19
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            reduce using rule 19
+	%eof           reduce using rule 19
+
+
+State 55
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr '!=' expr .                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 24
+	'||'           reduce using rule 24
+	'%'            shift, and enter state 34
+	'=='           fail
+	'!='           fail
+	'<'            shift, and enter state 37
+	'<='           shift, and enter state 38
+	'>'            shift, and enter state 39
+	'>='           shift, and enter state 40
+	'&'            reduce using rule 24
+	'|'            reduce using rule 24
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            reduce using rule 24
+	%eof           reduce using rule 24
+
+
+State 56
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr '==' expr .                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 23
+	'||'           reduce using rule 23
+	'%'            shift, and enter state 34
+	'=='           fail
+	'!='           fail
+	'<'            shift, and enter state 37
+	'<='           shift, and enter state 38
+	'>'            shift, and enter state 39
+	'>='           shift, and enter state 40
+	'&'            reduce using rule 23
+	'|'            reduce using rule 23
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            reduce using rule 23
+	%eof           reduce using rule 23
+
+
+State 57
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr '%' expr .                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            reduce using rule 16
+	'-'            reduce using rule 16
+	'*'            reduce using rule 16
+	'/'            reduce using rule 16
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 16
+	'||'           reduce using rule 16
+	'%'            reduce using rule 16
+	'=='           reduce using rule 16
+	'!='           reduce using rule 16
+	'<'            reduce using rule 16
+	'<='           reduce using rule 16
+	'>'            reduce using rule 16
+	'>='           reduce using rule 16
+	'&'            reduce using rule 16
+	'|'            reduce using rule 16
+	'<<'           reduce using rule 16
+	'>>'           reduce using rule 16
+	'^'            reduce using rule 16
+	%eof           reduce using rule 16
+
+
+State 58
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr '||' expr .                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           shift, and enter state 32
+	'||'           reduce using rule 26
+	'%'            shift, and enter state 34
+	'=='           shift, and enter state 35
+	'!='           shift, and enter state 36
+	'<'            shift, and enter state 37
+	'<='           shift, and enter state 38
+	'>'            shift, and enter state 39
+	'>='           shift, and enter state 40
+	'&'            shift, and enter state 41
+	'|'            shift, and enter state 42
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            shift, and enter state 45
+	%eof           reduce using rule 26
+
+
+State 59
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr '&&' expr .                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            shift, and enter state 26
+	'-'            shift, and enter state 27
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 25
+	'||'           reduce using rule 25
+	'%'            shift, and enter state 34
+	'=='           shift, and enter state 35
+	'!='           shift, and enter state 36
+	'<'            shift, and enter state 37
+	'<='           shift, and enter state 38
+	'>'            shift, and enter state 39
+	'>='           shift, and enter state 40
+	'&'            shift, and enter state 41
+	'|'            shift, and enter state 42
+	'<<'           shift, and enter state 43
+	'>>'           shift, and enter state 44
+	'^'            shift, and enter state 45
+	%eof           reduce using rule 25
+
+
+State 60
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr '/' expr .                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            reduce using rule 15
+	'-'            reduce using rule 15
+	'*'            reduce using rule 15
+	'/'            reduce using rule 15
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 15
+	'||'           reduce using rule 15
+	'%'            reduce using rule 15
+	'=='           reduce using rule 15
+	'!='           reduce using rule 15
+	'<'            reduce using rule 15
+	'<='           reduce using rule 15
+	'>'            reduce using rule 15
+	'>='           reduce using rule 15
+	'&'            reduce using rule 15
+	'|'            reduce using rule 15
+	'<<'           reduce using rule 15
+	'>>'           reduce using rule 15
+	'^'            reduce using rule 15
+	%eof           reduce using rule 15
+
+
+State 61
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr '*' expr .                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            reduce using rule 13
+	'-'            reduce using rule 13
+	'*'            reduce using rule 13
+	'/'            reduce using rule 13
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 13
+	'||'           reduce using rule 13
+	'%'            reduce using rule 13
+	'=='           reduce using rule 13
+	'!='           reduce using rule 13
+	'<'            reduce using rule 13
+	'<='           reduce using rule 13
+	'>'            reduce using rule 13
+	'>='           reduce using rule 13
+	'&'            reduce using rule 13
+	'|'            reduce using rule 13
+	'<<'           reduce using rule 13
+	'>>'           reduce using rule 13
+	'^'            reduce using rule 13
+	%eof           reduce using rule 13
+
+
+State 62
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr '-' expr .                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            reduce using rule 14
+	'-'            reduce using rule 14
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 14
+	'||'           reduce using rule 14
+	'%'            shift, and enter state 34
+	'=='           reduce using rule 14
+	'!='           reduce using rule 14
+	'<'            reduce using rule 14
+	'<='           reduce using rule 14
+	'>'            reduce using rule 14
+	'>='           reduce using rule 14
+	'&'            reduce using rule 14
+	'|'            reduce using rule 14
+	'<<'           reduce using rule 14
+	'>>'           reduce using rule 14
+	'^'            reduce using rule 14
+	%eof           reduce using rule 14
+
+
+State 63
+
+	unary -> expr . '++'                                (rule 3)
+	unary -> expr . '--'                                (rule 5)
+	binary -> expr . '+' expr                           (rule 12)
+	binary -> expr '+' expr .                           (rule 12)
+	binary -> expr . '*' expr                           (rule 13)
+	binary -> expr . '-' expr                           (rule 14)
+	binary -> expr . '/' expr                           (rule 15)
+	binary -> expr . '%' expr                           (rule 16)
+	binary -> expr . '<<' expr                          (rule 17)
+	binary -> expr . '>>' expr                          (rule 18)
+	binary -> expr . '<' expr                           (rule 19)
+	binary -> expr . '>' expr                           (rule 20)
+	binary -> expr . '>=' expr                          (rule 21)
+	binary -> expr . '<=' expr                          (rule 22)
+	binary -> expr . '==' expr                          (rule 23)
+	binary -> expr . '!=' expr                          (rule 24)
+	binary -> expr . '&&' expr                          (rule 25)
+	binary -> expr . '||' expr                          (rule 26)
+	binary -> expr . '^' expr                           (rule 27)
+	binary -> expr . '&' expr                           (rule 28)
+	binary -> expr . '|' expr                           (rule 29)
+
+	'+'            reduce using rule 12
+	'-'            reduce using rule 12
+	'*'            shift, and enter state 28
+	'/'            shift, and enter state 29
+	'++'           shift, and enter state 30
+	'--'           shift, and enter state 31
+	'&&'           reduce using rule 12
+	'||'           reduce using rule 12
+	'%'            shift, and enter state 34
+	'=='           reduce using rule 12
+	'!='           reduce using rule 12
+	'<'            reduce using rule 12
+	'<='           reduce using rule 12
+	'>'            reduce using rule 12
+	'>='           reduce using rule 12
+	'&'            reduce using rule 12
+	'|'            reduce using rule 12
+	'<<'           reduce using rule 12
+	'>>'           reduce using rule 12
+	'^'            reduce using rule 12
+	%eof           reduce using rule 12
 
 
 -----------------------------------------------------------------------------
 Grammar Totals
 -----------------------------------------------------------------------------
-Number of rules: 17
-Number of terminals: 84
+Number of rules: 36
+Number of terminals: 85
 Number of non-terminals: 5
-Number of states: 26
+Number of states: 64

@@ -194,6 +194,31 @@ data CBinaryOp a
     CLorOp a
   deriving (Eq, Ord, Show, Foldable)
 
+-- | C unary operator (K&R A7.3-4)
+data CUnaryOp a
+  = -- | prefix increment operator
+    CPreIncOp a
+  | -- | prefix decrement operator
+    CPreDecOp a
+  | -- | postfix increment operator
+    CPostIncOp a
+  | -- | postfix decrement operator
+    CPostDecOp a
+  | -- | address operator
+    CAdrOp a
+  | -- | indirection operator
+    CIndOp a
+  | -- | prefix plus
+    CPlusOp a
+  | -- | prefix minus
+    CMinOp a
+  | -- | one's complement
+    CCompOp a
+  | -- | logical negation
+    CNegOp a
+  -- TODO: Sizeof op
+  deriving (Eq, Ord, Show, Foldable)
+
 data CExpression a
   = CComma
       a
@@ -270,27 +295,3 @@ data CExpression a
   | -- integer, character, floating point and string constants
     CConstExpr (CConstant a)
   deriving (Show, Foldable)
-
--- | C unary operator (K&R A7.3-4)
-data CUnaryOp a
-  = -- | prefix increment operator
-    CPreIncOp a
-  | -- | prefix decrement operator
-    CPreDecOp a
-  | -- | postfix increment operator
-    CPostIncOp a
-  | -- | postfix decrement operator
-    CPostDecOp a
-  | -- | address operator
-    CAdrOp a
-  | -- | indirection operator
-    CIndOp a
-  | -- | prefix plus
-    CPlusOp a
-  | -- | prefix minus
-    CMinOp a
-  | -- | one's complement
-    CCompOp a
-  | -- | logical negation
-    CNegOp a
-  deriving (Eq, Ord, Show, Foldable)

@@ -92,7 +92,8 @@ import qualified Lexer as L
   '^'        { L.RangedToken L.Xor _ }
   '?'        { L.RangedToken L.QMark _ }
   '*='       { L.RangedToken L.TimesEq _ }
-  '%='       { L.RangedToken L.DivEq _ }
+  '/='       { L.RangedToken L.DivEq _ }
+  '%='       { L.RangedToken L.ModEq _ }
   '+='       { L.RangedToken L.PlusEq _ }
   '-='       { L.RangedToken L.MinusEq _ }
   '<<='      { L.RangedToken L.LShiftEq _ }
@@ -108,10 +109,26 @@ import qualified Lexer as L
   ';'        { L.RangedToken L.SemiColon _ }
   '...'      { L.RangedToken L.Ellipsis _ }
 
-
+%expect 0 
+-- %left ','
+-- %right '=' '+=' '-=' '/=' '%=' '<<=' '>>=' '&=' 
+-- %right TERN
+-- %left '||'
+--- %left BAND XOR
+-- %right '~' 
+-- %right PRE PLUS MINUS INDIRECT '&'  '!'
+%left '||' 
+%left '&&'
+%left '|'
+%left '^'
+%left '&'
+%nonassoc '==' '!='
+%nonassoc '<' '>'  '<=' '>='  
+%left '<<' '>>'
 %left '+' '-' 
-%left '*' '/'
-%left '++' '--' '&'
+%left '*' '/' '%' 
+%right PRE DRF ADR POS NEG '~' '!'
+%left '++' '--' 
 %%
 
 
@@ -119,21 +136,36 @@ variable :: { CId L.Range }
   : identifier { unTok $1 (\range (L.Identifier iden) -> CId range $ BS.unpack iden) }
 
 unary :: {CExpression L.Range}
-  : '++' expr {unTok $1 (\range (L.Inc) -> CUnary range (CPreIncOp range) $2)}
+  : '++' expr %prec PRE {unTok $1 (\range (L.Inc) -> CUnary range (CPreIncOp range) $2)}
   | expr '++' {unTok $2 (\range (L.Inc) -> CUnary range (CPostIncOp range) $1)}
-  | '--' expr {unTok $1 (\range (L.Dec) -> CUnary range (CPreDecOp range) $2)}
+  | '--' expr  %prec PRE {unTok $1 (\range (L.Dec) -> CUnary range (CPreDecOp range) $2)}
   | expr '--' {unTok $2 (\range (L.Dec) -> CUnary range (CPostDecOp range) $1)}
-  | '&' expr  {unTok $1 (\range (L.Amp) -> CUnary range (CAdrOp range) $2)}
-  | '*' expr  {unTok $1 (\range (L.Times) -> CUnary range (CIndOp range) $2)}
-  | '+' expr  {unTok $1 (\range (L.Plus) -> CUnary range (CPlusOp range) $2)}
-  | '-' expr  {unTok $1 (\range (L.Minus) -> CUnary range (CMinOp range) $2)}
-  -- | '~' expr %prec PRE {unTok $1 (\range (L.Complement) -> CUnary range (CCompOp range) $2)}
-  -- | '!' expr %prec PRE {unTok $1 (\range (L.Bang) -> CUnary range (CNegOp range) $2)}
+  | '&' expr %prec ADR  {unTok $1 (\range (L.Amp) -> CUnary range (CAdrOp range) $2)}
+  | '*' expr %prec DRF  {unTok $1 (\range (L.Times) -> CUnary range (CIndOp range) $2)}
+  | '+' expr %prec POS  {unTok $1 (\range (L.Plus) -> CUnary range (CPlusOp range) $2)}
+  | '-' expr  %prec NEG {unTok $1 (\range (L.Minus) -> CUnary range (CMinOp range) $2)}
+  | '~' expr  {unTok $1 (\range (L.Complement) -> CUnary range (CCompOp range) $2)}
+  | '!' expr  {unTok $1 (\range (L.Bang) -> CUnary range (CNegOp range) $2)}
 
 binary :: {CExpression L.Range}
   : expr '+' expr {unTok $2 (\range (L.Plus) -> CBinary range (CAddOp range) $1 $3)}
   | expr '*' expr {unTok $2 (\range (L.Times) -> CBinary range (CMulOp range) $1 $3)}
   | expr '-' expr {unTok $2 (\range (L.Minus) -> CBinary range (CSubOp range) $1 $3)}
+  | expr '/' expr {unTok $2 (\range (L.Div) -> CBinary range (CDivOp range) $1 $3)}
+  | expr '%' expr {unTok $2 (\range (L.Mod) -> CBinary range (CRmdOp range) $1 $3)}
+  | expr '<<' expr {unTok $2 (\range (L.LShift) -> CBinary range (CShlOp range) $1 $3)}
+  | expr '>>' expr {unTok $2 (\range (L.RShift) -> CBinary range (CShrOp range) $1 $3)}
+  | expr '<' expr {unTok $2 (\range (L.Le) -> CBinary range (CLeOp range) $1 $3)}
+  | expr '>' expr {unTok $2 (\range (L.Gr) -> CBinary range (CGrOp range) $1 $3)}
+  | expr '>=' expr {unTok $2 (\range (L.GEq) -> CBinary range (CGeqOp range) $1 $3)}
+  | expr '<=' expr {unTok $2 (\range (L.LEq) -> CBinary range (CLeqOp range) $1 $3)}
+  | expr '==' expr {unTok $2 (\range (L.Eq) -> CBinary range (CEqOp range) $1 $3)}
+  | expr '!=' expr {unTok $2 (\range (L.NotEq) -> CBinary range (CNeqOp range) $1 $3)}
+  | expr '&&' expr {unTok $2 (\range (L.LAnd) -> CBinary range (CLandOp range) $1 $3)}
+  | expr '||' expr {unTok $2 (\range (L.LOr) -> CBinary range (CLorOp range) $1 $3)}
+  | expr '^' expr {unTok $2 (\range (L.Or) -> CBinary range (CLorOp range) $1 $3)}
+  | expr '&' expr {unTok $2 (\range (L.Amp) -> CBinary range (CAndOp range) $1 $3)}
+  | expr '|' expr {unTok $2 (\range (L.Or) -> CBinary range (CLorOp range) $1 $3)}
    
 
 -- TODO: Update types to handle weird c-types like char const with multiple chars

@@ -134,6 +134,7 @@ tokens :-
 <0> ">=" {tok GEq}
 <0> "!=" {tok NotEq}
 <0> "^" {tok Xor}
+<0> "|" {tok Or}
 <0> "?" {tok QMark}
 <0> ":" {tok Colon}
 <0> "="  {tok AEq}
