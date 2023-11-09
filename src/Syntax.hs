@@ -3,7 +3,8 @@
 
 module Syntax where
 
-type CId a = String
+data CId a = CId a String
+  deriving (Show, Foldable)
 
 data CTranslationUnit a where
   CTranslationUnit :: a -> [CExternalDeclaration a] -> CTranslationUnit a
@@ -265,14 +266,9 @@ data CExpression a
       -- member name
       Bool -- deref structure? (True for `->')
   | CVar
-      a
       (CId a)
-  | -- identifier (incl. enumeration const)
-    CLiteral
-      a
-      Integer
-  | --   | -- | integer, character, floating point and string constants
-    CConstExpr a (CConstant a)
+  | -- integer, character, floating point and string constants
+    CConstExpr (CConstant a)
   deriving (Show, Foldable)
 
 -- | C unary operator (K&R A7.3-4)

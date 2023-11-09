@@ -121,7 +121,7 @@ tokens :-
 <0> "->" {tok Arrow}
 <0> "++" {tok Inc}
 <0> "--" {tok Dec}
-<0> "&" {tok And}
+<0> "&" {tok Amp}
 <0> "sizeof" {tok SizeOfOp}
 <0> "/" {tok Div}
 <0> "%" {tok Mod}
@@ -259,7 +259,7 @@ data Token =
   Arrow |
   Inc |
   Dec |
-  And |
+  Amp |
   SizeOfOp |
   Div |
   Mod |

@@ -20,11 +20,11 @@ Struct/Union -> [Variables]
 
 -}
 
-import Data.Map (Map)
-import qualified Data.Map as M
-import Syntax
+-- import Data.Map (Map)
+-- import qualified Data.Map as M
+-- import Syntax
 
--- data Env where
+-- -- data Env where
 --   Global ::
 {--
 
