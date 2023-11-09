@@ -112,6 +112,7 @@ import qualified Lexer as L
 %expect 0 
 %left ','
 %right '=' '*=' '/=' '%=' '+=' '-=' '<<=' '>>=' '&=' '|=' '^='
+%right '?' ':'
 %left '||' 
 %left '&&'
 %left '|'
@@ -149,6 +150,7 @@ member :: {CExpression L.Range}
 call :: {CExpression L.Range}
   : expr '(' exprs ')'  {CCall (info $1 <-> L.rtRange $4) $1 (reverse $3)}
 
+exprs :: {[CExpression L.Range]}
 exprs : {- empty -}    { [] } 
       | expr           { [$1] }
       | exprs ',' expr { $3 : $1 }
@@ -189,7 +191,10 @@ binary :: {CExpression L.Range}
   | expr '^' expr {unTok $2 (\range (L.Or) -> CBinary range (CXorOp range) $1 $3)}
   | expr '&' expr {unTok $2 (\range (L.Amp) -> CBinary range (CAndOp range) $1 $3)}
   | expr '|' expr {unTok $2 (\range (L.Or) -> CBinary range (COrOp range) $1 $3)}
-   
+
+ternary :: {CExpression L.Range}
+  : expr '?' expr ':' expr {CCond (info $1 <-> info $5) $1 (Just $3) $5}
+  | expr '?' ':' expr {CCond (info $1 <-> info $4) $1 Nothing $4}
 
 -- TODO: Update types to handle weird c-types like char with multiple chars
 expr :: {CExpression L.Range }
@@ -197,6 +202,7 @@ expr :: {CExpression L.Range }
   | integer_const {unTok $1 (\range (L.IntConst int) -> CConstExpr $ IntConst range $ read $ BS.unpack int)}
   | float_const {unTok $1 (\range (L.FloatConst f) -> CConstExpr $ DblConst range $ read $ BS.unpack f)}
   | char_const {unTok $1 (\range (L.CharConst c) -> CConstExpr $ CharConst range $ read $ BS.unpack c)}
+  | ternary {$1}
   | binary {$1}
   | unary {$1}
   | assign {$1}
