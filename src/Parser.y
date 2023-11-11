@@ -14,7 +14,7 @@ import Syntax
 import qualified Lexer as L
 }
 
-%name clang function_definition 
+%name clang translation_unit 
 %tokentype { L.RangedToken }
 %error { parseError }
 %monad { L.Alex } { >>= } { pure }
@@ -127,6 +127,114 @@ import qualified Lexer as L
 %left '++' '--' '->' '.' '(' ')' '[' ']'
 %%
 
+translation_unit :: {CTranslationUnit L.Range}
+  : external_declarations {CTranslationUnit (infos $1) (reverse $1)}
+
+external_declaration :: {CExternalDeclaration L.Range}
+  : function_definition {CFuncDefExt (info $1) $1}
+  | declaration {CDeclExt (info $1) $1} 
+
+external_declarations :: {[CExternalDeclaration L.Range]}
+  : external_declaration {[$1]}
+  | external_declarations external_declaration {$2:$1}
+
+function_definition :: {CFunctionDef L.Range}
+  : decl_spec declarator block {CFunctionDef (info $1 <-> info $3) $1 $2 [] $3}
+
+declaration :: {CDeclaration L.Range}
+  : decl_spec ';' {CDeclaration (info $1) $1 []}
+  | decl_spec init_declarator_list ';' {CDeclaration (info $1 <-> L.rtRange $3) $1 $2}
+
+init_declarator :: {CInitDeclarator L.Range}
+  : declarator {CInitDeclarator (info $1) $1 Nothing}
+  | declarator '=' initializer {CInitDeclarator (info $1 <-> info $3) $1 (Just $3)}
+
+init_declarator_list :: {[CInitDeclarator L.Range]}
+  : init_declarator {[$1]}
+  | init_declarator_list ',' init_declarator {$3:$1}
+
+initializer :: {CInitializer L.Range}
+  : expr  {CInitializer (info $1) [$1] []}
+  | '{' initializer_list '}' {CInitializer (L.rtRange $1 <-> L.rtRange $3) [] $2} 
+  | '{' initializer_list ',' '}' {CInitializer (L.rtRange $1 <-> L.rtRange $4) [] $2}
+
+initializer_list :: {[CInitializer L.Range]}
+  : initializer {[$1]}
+  | initializer_list ',' initializer {$3:$1}
+
+decl_spec :: {CDeclarationSpecifier L.Range}
+  : storage_spec decl_spec  {CStorageSpec (info $1 <-> info $2) $1 (Just [$2])}
+  | storage_spec {CStorageSpec (info $1) $1 Nothing}
+  | type_spec decl_spec {CTypeSpec (info $1 <-> info $2) $1 (Just [$2])}
+  | type_spec {CTypeSpec (info $1) $1 Nothing}
+  | type_qual decl_spec {CTypeQual (info $1 <-> info $2) $1 (Just [$2])}
+  | type_qual {CTypeQual(info $1) $1 Nothing}
+
+storage_spec :: {CStorageClassSpecifier L.Range}
+  : auto {CAuto (L.rtRange $1)}
+  | register {CRegister (L.rtRange $1)}
+  | static {CStatic (L.rtRange $1)}
+  | extern {CExtern (L.rtRange $1)}
+  | typedef {CTypeDef (L.rtRange $1)}
+
+type_spec :: {CTypeSpecifier L.Range}
+  : void {CVoidType (L.rtRange $1)}
+  | char {CCharType (L.rtRange $1)}
+  | short {CShortType (L.rtRange $1)}
+  | int {CIntType (L.rtRange $1)}
+  | long {CLongType (L.rtRange $1)}
+  | float {CFloatType (L.rtRange $1)}
+  | double {CDoubleType (L.rtRange $1)}
+  | signed {CSignedType (L.rtRange $1)}
+  | unsigned {CUnsignedType (L.rtRange $1)}
+  
+type_qual :: {CTypeQualifier L.Range}
+  : const {CConst (L.rtRange $1)}
+  | volatile {CVolatile (L.rtRange $1)}
+
+declarator :: {CDeclarator L.Range}
+  : pointer direct_decl {PtrDeclarator (info $1 <-> info $2) $1 $2}
+  | direct_decl {Declarator (info $1) $1} 
+
+type_qualifier_list :: {[CTypeQualifier L.Range]}
+  : type_qual {[$1]}
+  | type_qualifier_list type_qual {$2 : $1}
+ 
+pointer :: {CPointer L.Range}
+  : '*' {CPointer (L.rtRange $1) [] Nothing}
+  | '*' pointer {CPointer (L.rtRange $1 <-> info $2) [] (Just $2)} 
+  | '*' type_qualifier_list {CPointer (L.rtRange $1) $2 Nothing}
+  | '*' type_qualifier_list pointer {CPointer (L.rtRange $1 <-> info $3) $2 (Just $3)}
+
+direct_decl :: {CDirectDeclarator L.Range}
+  : ident_decl {$1}
+  | '(' declarator ')' {NestedDecl (info $2) $2 Nothing}
+  | '(' declarator ')' type_modifier {NestedDecl (L.rtRange $1 <-> info $4) $2 (Just $4)}
+
+ident_decl :: {CDirectDeclarator L.Range}
+  : variable type_modifier {CIdentDecl (info $1 <-> info $2) $1 (Just $2)}
+  | variable {CIdentDecl (info $1) $1 Nothing}
+
+type_modifier :: {CTypeModifier L.Range}
+  : array_modifier {$1}
+  | func_modifier  {$1}
+
+array_modifier :: {CTypeModifier L.Range}
+  : '[' expr ']' type_modifier {ArrayModifier (L.rtRange $1 <-> info $4) $2 (Just $4)}
+  | '[' expr ']' {ArrayModifier (L.rtRange $1 <-> L.rtRange $3) $2 Nothing}
+
+func_modifier :: {CTypeModifier L.Range}
+  : '(' ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $2) [] []}
+  | '(' variables ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) (reverse $2) []}
+  | '(' parameters ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) [] $ reverse $2}
+
+parameter :: {CParameter L.Range}
+  :  decl_spec declarator {CParameter (info $1 <-> info $2) $1 $2}
+
+parameters ::  {[CParameter L.Range]}
+  : parameter {[$1]}
+  | parameters ',' parameter {$3 : $1}
+
 variable :: { CId L.Range }
   : identifier { unTok $1 (\range (L.Identifier iden) -> CId range $ BS.unpack iden) }
 
@@ -214,81 +322,7 @@ expr :: {CExpression L.Range }
   | index {$1}
   | '(' expr ')' {$2}
 
-function_definition :: {CFunctionDef L.Range}
-  : decl_spec declarator block {CFunctionDef (info $1 <-> info $3) $1 $2 [] $3}
 
-decl_spec :: {CDeclarationSpecifier L.Range}
-  : storage_spec decl_spec  {CStorageSpec (info $1 <-> info $2) $1 (Just [$2])}
-  | storage_spec {CStorageSpec (info $1) $1 Nothing}
-  | type_spec decl_spec {CTypeSpec (info $1 <-> info $2) $1 (Just [$2])}
-  | type_spec {CTypeSpec (info $1) $1 Nothing}
-  | type_qual decl_spec {CTypeQual (info $1 <-> info $2) $1 (Just [$2])}
-  | type_qual {CTypeQual(info $1) $1 Nothing}
-
-storage_spec :: {CStorageClassSpecifier L.Range}
-  : auto {CAuto (L.rtRange $1)}
-  | register {CRegister (L.rtRange $1)}
-  | static {CStatic (L.rtRange $1)}
-  | extern {CExtern (L.rtRange $1)}
-  | typedef {CTypeDef (L.rtRange $1)}
-
-type_spec :: {CTypeSpecifier L.Range}
-  : void {CVoidType (L.rtRange $1)}
-  | char {CCharType (L.rtRange $1)}
-  | short {CShortType (L.rtRange $1)}
-  | int {CIntType (L.rtRange $1)}
-  | long {CLongType (L.rtRange $1)}
-  | float {CFloatType (L.rtRange $1)}
-  | double {CDoubleType (L.rtRange $1)}
-  | signed {CSignedType (L.rtRange $1)}
-  | unsigned {CUnsignedType (L.rtRange $1)}
-  
-type_qual :: {CTypeQualifier L.Range}
-  : const {CConst (L.rtRange $1)}
-  | volatile {CVolatile (L.rtRange $1)}
-
-declarator :: {CDeclarator L.Range}
-  : pointer direct_decl {PtrDeclarator (info $1 <-> info $2) $1 $2}
-  | direct_decl {Declarator (info $1) $1} 
-
-type_qualifier_list :: {[CTypeQualifier L.Range]}
-  : type_qual {[$1]}
-  | type_qualifier_list type_qual {$2 : $1}
- 
-pointer :: {CPointer L.Range}
-  : '*' {CPointer (L.rtRange $1) [] Nothing}
-  | '*' pointer {CPointer (L.rtRange $1 <-> info $2) [] (Just $2)} 
-  | '*' type_qualifier_list {CPointer (L.rtRange $1) $2 Nothing}
-  | '*' type_qualifier_list pointer {CPointer (L.rtRange $1 <-> info $3) $2 (Just $3)}
-
-direct_decl :: {CDirectDeclarator L.Range}
-  : ident_decl {$1}
-  | '(' declarator ')' {NestedDecl (info $2) $2 Nothing}
-  | '(' declarator ')' type_modifier {NestedDecl (L.rtRange $1 <-> info $4) $2 (Just $4)}
-
-ident_decl :: {CDirectDeclarator L.Range}
-  : variable type_modifier {CIdentDecl (info $1 <-> info $2) $1 (Just $2)}
-  | variable {CIdentDecl (info $1) $1 Nothing}
-
-type_modifier :: {CTypeModifier L.Range}
-  : array_modifier {$1}
-  | func_modifier  {$1}
-
-array_modifier :: {CTypeModifier L.Range}
-  : '[' expr ']' type_modifier {ArrayModifier (L.rtRange $1 <-> info $4) $2 (Just $4)}
-  | '[' expr ']' {ArrayModifier (L.rtRange $1 <-> L.rtRange $3) $2 Nothing}
-
-func_modifier :: {CTypeModifier L.Range}
-  : '(' ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $2) [] []}
-  | '(' variables ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) (reverse $2) []}
-  | '(' parameters ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) [] $ reverse $2}
-
-parameter :: {CParameter L.Range}
-  :  decl_spec declarator {CParameter (info $1 <-> info $2) $1 $2}
-
-parameters ::  {[CParameter L.Range]}
-  : parameter {[$1]}
-  | parameters ',' parameter {$3 : $1}
 
 stmt :: {CStatement L.Range}
   : if_stmt {CSelectStmt (info $1) $1}
@@ -316,6 +350,9 @@ unTok (L.RangedToken tok range) ctor = ctor range tok
 -- | Unsafely extracts the the metainformation field of a node.
 info :: Foldable f => f a -> a
 info = fromJust . getFirst . foldMap pure
+
+infos :: Foldable f => [f L.Range] -> L.Range 
+infos (x:xs) = (info x) <-> info  (last xs)
 
 -- | Performs the union of two ranges by creating a new range starting at the
 -- start position of the first range, and stopping at the stop position of the

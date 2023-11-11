@@ -20,7 +20,11 @@ data CFunctionDef a where
   deriving (Show, Foldable)
 
 data CDeclaration a where
-  CDeclaration :: a -> CDeclarationSpecifier a -> [CDeclarator a] -> Maybe [CInitializer a] -> CDeclaration a
+  CDeclaration :: a -> CDeclarationSpecifier a -> [CInitDeclarator a] -> CDeclaration a
+  deriving (Show, Foldable)
+
+data CInitDeclarator a where
+  CInitDeclarator :: a -> CDeclarator a -> Maybe (CInitializer a) -> CInitDeclarator a
   deriving (Show, Foldable)
 
 data CDeclarationSpecifier a where
@@ -91,7 +95,7 @@ data CParameter a where
   deriving (Show, Foldable)
 
 data CInitializer a where
-  CInitializer :: a -> [CExpression a] -> CInitializer a
+  CInitializer :: a -> [CExpression a] -> [CInitializer a] -> CInitializer a
   deriving (Show, Foldable)
 
 data CTypeName a where
