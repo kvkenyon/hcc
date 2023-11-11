@@ -14,7 +14,7 @@ import Syntax
 import qualified Lexer as L
 }
 
-%name clang stmt 
+%name clang function_definition 
 %tokentype { L.RangedToken }
 %error { parseError }
 %monad { L.Alex } { >>= } { pure }
@@ -110,7 +110,7 @@ import qualified Lexer as L
   '...'      { L.RangedToken L.Ellipsis _ }
 
 %expect 0 
-%left ','
+%left ',' 
 %right '=' '*=' '/=' '%=' '+=' '-=' '<<=' '>>=' '&=' '|=' '^='
 %right '?' ':'
 %left '||' 
@@ -129,6 +129,10 @@ import qualified Lexer as L
 
 variable :: { CId L.Range }
   : identifier { unTok $1 (\range (L.Identifier iden) -> CId range $ BS.unpack iden) }
+
+variables :: {[CId L.Range]}
+  : variable {[$1]}
+  | variables ',' variable {$3 : $1}
 
 assign :: {CExpression L.Range}
   : expr '=' expr {unTok $2 (\range (L.AEq) -> CAssign range (Equal range) $1 $3)}
@@ -210,19 +214,100 @@ expr :: {CExpression L.Range }
   | index {$1}
   | '(' expr ')' {$2}
 
+function_definition :: {CFunctionDef L.Range}
+  : decl_spec declarator block {CFunctionDef (info $1 <-> info $3) $1 $2 [] $3}
+
+decl_spec :: {CDeclarationSpecifier L.Range}
+  : storage_spec decl_spec  {CStorageSpec (info $1 <-> info $2) $1 (Just [$2])}
+  | storage_spec {CStorageSpec (info $1) $1 Nothing}
+  | type_spec decl_spec {CTypeSpec (info $1 <-> info $2) $1 (Just [$2])}
+  | type_spec {CTypeSpec (info $1) $1 Nothing}
+  | type_qual decl_spec {CTypeQual (info $1 <-> info $2) $1 (Just [$2])}
+  | type_qual {CTypeQual(info $1) $1 Nothing}
+
+storage_spec :: {CStorageClassSpecifier L.Range}
+  : auto {CAuto (L.rtRange $1)}
+  | register {CRegister (L.rtRange $1)}
+  | static {CStatic (L.rtRange $1)}
+  | extern {CExtern (L.rtRange $1)}
+  | typedef {CTypeDef (L.rtRange $1)}
+
+type_spec :: {CTypeSpecifier L.Range}
+  : void {CVoidType (L.rtRange $1)}
+  | char {CCharType (L.rtRange $1)}
+  | short {CShortType (L.rtRange $1)}
+  | int {CIntType (L.rtRange $1)}
+  | long {CLongType (L.rtRange $1)}
+  | float {CFloatType (L.rtRange $1)}
+  | double {CDoubleType (L.rtRange $1)}
+  | signed {CSignedType (L.rtRange $1)}
+  | unsigned {CUnsignedType (L.rtRange $1)}
+  
+type_qual :: {CTypeQualifier L.Range}
+  : const {CConst (L.rtRange $1)}
+  | volatile {CVolatile (L.rtRange $1)}
+
+declarator :: {CDeclarator L.Range}
+  : pointer direct_decl {PtrDeclarator (info $1 <-> info $2) $1 $2}
+  | direct_decl {Declarator (info $1) $1} 
+
+type_qualifier_list :: {[CTypeQualifier L.Range]}
+  : type_qual {[$1]}
+  | type_qualifier_list type_qual {$2 : $1}
+ 
+pointer :: {CPointer L.Range}
+  : '*' {CPointer (L.rtRange $1) [] Nothing}
+  | '*' pointer {CPointer (L.rtRange $1 <-> info $2) [] (Just $2)} 
+  | '*' type_qualifier_list {CPointer (L.rtRange $1) $2 Nothing}
+  | '*' type_qualifier_list pointer {CPointer (L.rtRange $1 <-> info $3) $2 (Just $3)}
+
+direct_decl :: {CDirectDeclarator L.Range}
+  : ident_decl {$1}
+  | '(' declarator ')' {NestedDecl (info $2) $2 Nothing}
+  | '(' declarator ')' type_modifier {NestedDecl (L.rtRange $1 <-> info $4) $2 (Just $4)}
+
+ident_decl :: {CDirectDeclarator L.Range}
+  : variable type_modifier {CIdentDecl (info $1 <-> info $2) $1 (Just $2)}
+  | variable {CIdentDecl (info $1) $1 Nothing}
+
+type_modifier :: {CTypeModifier L.Range}
+  : array_modifier {$1}
+  | func_modifier  {$1}
+
+array_modifier :: {CTypeModifier L.Range}
+  : '[' expr ']' type_modifier {ArrayModifier (L.rtRange $1 <-> info $4) $2 (Just $4)}
+  | '[' expr ']' {ArrayModifier (L.rtRange $1 <-> L.rtRange $3) $2 Nothing}
+
+func_modifier :: {CTypeModifier L.Range}
+  : '(' ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $2) [] []}
+  | '(' variables ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) (reverse $2) []}
+  | '(' parameters ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) [] $ reverse $2}
+
+parameter :: {CParameter L.Range}
+  :  decl_spec declarator {CParameter (info $1 <-> info $2) $1 $2}
+
+parameters ::  {[CParameter L.Range]}
+  : parameter {[$1]}
+  | parameters ',' parameter {$3 : $1}
 
 stmt :: {CStatement L.Range}
-  : expr ';' {CExprStmt (info $1 <-> L.rtRange $2) (Just $1)}
-  | if_stmt {CSelectStmt (info $1) $1}
-  | ';' {CExprStmt (L.rtRange $1) Nothing}
+  : if_stmt {CSelectStmt (info $1) $1}
+  | block {$1}
+  | expr  {CExprStmt (info $1) (Just $1)}
+
+block :: {CStatement L.Range}
+  : '{' stmts '}' {CCompStmt (L.rtRange $1 <-> L.rtRange $3) Nothing (Just $ reverse $2)}
+
+stmts :: {[CStatement L.Range]}
+  : stmts ';' stmt          { $3 : $1 }
+      | stmts ';'               { $1 }
+      | stmt  		{ [$1] }
+      | {- empty -}		{ [] }
 
 if_stmt :: {CSelectStatement L.Range}
-  : if '(' expr ')' '{' stmt '}' else '{' stmt '}' {IfStmt (L.rtRange $1 <-> L.rtRange $11) $3 $6 (Just $10)}
-  | if '(' expr ')' '{' stmt '}' else stmt {IfStmt (L.rtRange $1 <-> info $9) $3 $6 (Just $9)}
-  | if '(' expr ')' stmt {IfStmt (L.rtRange $1 <-> info $5) $3 $5 Nothing}
-  | if '(' expr ')' '{' stmt '}' {IfStmt (L.rtRange $1 <-> info $6) $3 $6 Nothing}
+  : if '(' expr ')' stmt %shift {IfStmt (L.rtRange $1 <-> info $5) $3 $5 Nothing}
+  | if '(' expr ')' stmt else stmt {IfStmt (L.rtRange $1 <->info $7) $3 $5 (Just $7)}
 {
-
 
   -- | Build a simple node by extracting its token type and range.
 unTok :: L.RangedToken -> (L.Range -> L.Token -> a) -> a

@@ -16,11 +16,11 @@ data CExternalDeclaration a where
   deriving (Show, Foldable)
 
 data CFunctionDef a where
-  CFunctionDef :: a -> [CDeclarationSpecifier a] -> CDeclarator a -> [CDeclaration a] -> CStatement a -> CFunctionDef a
+  CFunctionDef :: a -> CDeclarationSpecifier a -> CDeclarator a -> [CDeclaration a] -> CStatement a -> CFunctionDef a
   deriving (Show, Foldable)
 
 data CDeclaration a where
-  CDeclaration :: a -> [CDeclarationSpecifier a] -> [CDeclarator a] -> Maybe [CInitializer a] -> CDeclaration a
+  CDeclaration :: a -> CDeclarationSpecifier a -> [CDeclarator a] -> Maybe [CInitializer a] -> CDeclaration a
   deriving (Show, Foldable)
 
 data CDeclarationSpecifier a where
@@ -87,7 +87,7 @@ data CTypeModifier a where
   deriving (Show, Foldable)
 
 data CParameter a where
-  CParameter :: a -> [CDeclarationSpecifier a] -> CDeclarator a -> CParameter a
+  CParameter :: a -> CDeclarationSpecifier a -> CDeclarator a -> CParameter a
   deriving (Show, Foldable)
 
 data CInitializer a where
