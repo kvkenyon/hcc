@@ -284,4 +284,5 @@ data CExpression a
       (CId a)
   | -- integer, character, floating point and string constants
     CConstExpr (CConstant a)
+  | CNoOp a
   deriving (Show, Foldable)

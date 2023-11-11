@@ -299,7 +299,7 @@ binary :: {CExpression L.Range}
   | expr '!=' expr {unTok $2 (\range (L.NotEq) -> CBinary range (CNeqOp range) $1 $3)}
   | expr '&&' expr {unTok $2 (\range (L.LAnd) -> CBinary range (CLandOp range) $1 $3)}
   | expr '||' expr {unTok $2 (\range (L.LOr) -> CBinary range (CLorOp range) $1 $3)}
-  | expr '^' expr {unTok $2 (\range (L.Or) -> CBinary range (CXorOp range) $1 $3)}
+  | expr '^' expr {unTok $2 (\range (L.Xor) -> CBinary range (CXorOp range) $1 $3)}
   | expr '&' expr {unTok $2 (\range (L.Amp) -> CBinary range (CAndOp range) $1 $3)}
   | expr '|' expr {unTok $2 (\range (L.Or) -> CBinary range (COrOp range) $1 $3)}
 
@@ -328,9 +328,11 @@ stmt :: {CStatement L.Range}
   : if_stmt {CSelectStmt (info $1) $1}
   | block {$1}
   | expr  {CExprStmt (info $1) (Just $1)}
+  | for_loop {CIterStmt (info $1) $1}
 
 block :: {CStatement L.Range}
   : '{' stmts '}' {CCompStmt (L.rtRange $1 <-> L.rtRange $3) Nothing (Just $ reverse $2)}
+  | '{' declarations stmts '}' {CCompStmt (L.rtRange $1 <-> L.rtRange $4) (Just $ reverse $2) (Just $ reverse $3)}
 
 stmts :: {[CStatement L.Range]}
   : stmts ';' stmt          { $3 : $1 }
@@ -338,9 +340,24 @@ stmts :: {[CStatement L.Range]}
       | stmt  		{ [$1] }
       | {- empty -}		{ [] }
 
+declarations :: {[CDeclaration L.Range]}
+  : declaration { [$1] }
+  | declarations declaration {$2:$1}
+
 if_stmt :: {CSelectStatement L.Range}
   : if '(' expr ')' stmt %shift {IfStmt (L.rtRange $1 <-> info $5) $3 $5 Nothing}
   | if '(' expr ')' stmt else stmt {IfStmt (L.rtRange $1 <->info $7) $3 $5 (Just $7)}
+
+expr_stmt :: {CExpression L.Range}
+  : ';' {CNoOp (L.rtRange $1)}
+  | expr ';' {$1}
+
+for_loop :: {CIterStatement L.Range}
+  : for '(' expr_stmt expr_stmt ')' block {CFor (L.rtRange $1 <-> info $6) (Just $3) (Just $4) Nothing $6}
+  | for '(' expr_stmt expr_stmt expr ')' block {CFor (L.rtRange $1 <-> info $7) (Just $3) (Just $4) (Just $5) $7}
+
+
+
 {
 
   -- | Build a simple node by extracting its token type and range.
@@ -352,6 +369,7 @@ info :: Foldable f => f a -> a
 info = fromJust . getFirst . foldMap pure
 
 infos :: Foldable f => [f L.Range] -> L.Range 
+infos [x] = info x
 infos (x:xs) = (info x) <-> info  (last xs)
 
 -- | Performs the union of two ranges by creating a new range starting at the
