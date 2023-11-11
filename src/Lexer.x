@@ -103,8 +103,8 @@ tokens :-
 <0> union {tok Union}
 <0> unsigned {tok Unsigned}
 <0> void {tok Void}
-<0> volatile = {tok Volatile}
-<0> while = {tok While}
+<0> volatile {tok Volatile}
+<0> while {tok While}
 -- Operators/Punctuators
 <0> "+" {tok Plus}
 <0> "-" {tok Minus}

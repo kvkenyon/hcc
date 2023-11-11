@@ -47,6 +47,7 @@ import qualified Lexer as L
   long       { L.RangedToken L.Long _}
   register   { L.RangedToken L.Register _}
   return     { L.RangedToken L.Return _}
+  goto       { L.RangedToken L.Goto _}
   short      { L.RangedToken L.Short _}
   signed     { L.RangedToken L.Signed _}
   sizeof     { L.RangedToken L.Sizeof _}
@@ -67,7 +68,6 @@ import qualified Lexer as L
   '--'       { L.RangedToken L.Dec _ }
   '&&'       { L.RangedToken L.LAnd _ }
   '||'       { L.RangedToken L.LOr _ }
-  'sizeof'   { L.RangedToken L.SizeOfOp _ }
   '%'        { L.RangedToken L.Mod _ }
   '='        { L.RangedToken L.AEq _ }
   '=='       { L.RangedToken L.Eq _ }
@@ -145,13 +145,13 @@ declaration :: {CDeclaration L.Range}
   : decl_spec ';' {CDeclaration (info $1) $1 []}
   | decl_spec init_declarator_list ';' {CDeclaration (info $1 <-> L.rtRange $3) $1 $2}
 
-init_declarator :: {CInitDeclarator L.Range}
-  : declarator {CInitDeclarator (info $1) $1 Nothing}
-  | declarator '=' initializer {CInitDeclarator (info $1 <-> info $3) $1 (Just $3)}
-
 init_declarator_list :: {[CInitDeclarator L.Range]}
   : init_declarator {[$1]}
   | init_declarator_list ',' init_declarator {$3:$1}
+
+init_declarator :: {CInitDeclarator L.Range}
+  : declarator {CInitDeclarator (info $1) $1 Nothing}
+  | declarator '=' initializer {CInitDeclarator (info $1 <-> info $3) $1 (Just $3)}
 
 initializer :: {CInitializer L.Range}
   : expr  {CInitializer (info $1) [$1] []}
@@ -187,7 +187,46 @@ type_spec :: {CTypeSpecifier L.Range}
   | double {CDoubleType (L.rtRange $1)}
   | signed {CSignedType (L.rtRange $1)}
   | unsigned {CUnsignedType (L.rtRange $1)}
-  
+  | struct_type_specifier {CStructType (info $1) $1}
+  | enum_specifier {CEnumType (info $1) $1}
+
+struct_type_specifier :: {CStructTypeSpecifier L.Range}
+  : struct variable '{' struct_declaration_list '}' {CStruct (L.rtRange $1 <-> L.rtRange $5) (STRUCT (L.rtRange $1)) (Just $2) (reverse $4)}
+  | struct '{' struct_declaration_list '}' {CStruct (L.rtRange $1 <-> L.rtRange $4) (STRUCT (L.rtRange $1)) Nothing (reverse $3)} 
+  | struct variable {CStruct (L.rtRange $1 <->  info $2) (STRUCT(L.rtRange $1)) Nothing []}
+  | union variable '{' struct_declaration_list '}' {CStruct (L.rtRange $1 <-> L.rtRange $5) (UNION(L.rtRange $1)) (Just $2) (reverse $4)}
+  | union '{' struct_declaration_list '}'{CStruct (L.rtRange $1 <-> L.rtRange $4) (UNION (L.rtRange $1)) Nothing (reverse $3)}
+  | union variable {CStruct (L.rtRange $1 <->  info $2) (UNION (L.rtRange $1)) Nothing []}
+
+struct_declaration_list :: {[CStructDeclaration L.Range]}
+  : {- empty -}  {[]}
+  | struct_declaration_list struct_declaration {$2:$1}
+
+struct_declaration :: {CStructDeclaration L.Range}
+  : decl_spec struct_declarator_list ';' {CStructDecl (info $1 <-> L.rtRange $3) $1 $2} 
+
+struct_declarator_list :: {[CStructDeclarator L.Range]}
+  : struct_declarator {[$1]}
+  | struct_declarator_list ',' struct_declarator {$3:$1}
+
+struct_declarator :: {CStructDeclarator L.Range}
+  : declarator {CStructDeclarator (info $1) (Just $1) Nothing} 
+  | ':' expr   {CStructDeclarator (L.rtRange $1 <-> info $2) Nothing (Just $2)}
+  | declarator ':' expr  {CStructDeclarator (info $1 <-> info $3) (Just $1) (Just $3)}
+
+enum_specifier :: {CEnumTypeSpecifier L.Range}
+  : enum '{' enumerator_list '}' {CEnumSpecifier (L.rtRange $1 <-> L.rtRange $4) Nothing (reverse $3)}
+  | enum variable '{' enumerator_list '}' {CEnumSpecifier (L.rtRange $1 <-> L.rtRange $5) (Just $2) (reverse $4)}
+  | enum variable {CEnumSpecifier (L.rtRange $1 <-> info $2) (Just $2) []}
+
+enumerator_list :: {[CEnumerator L.Range]}
+  : enumerator {[$1]}
+  | enumerator_list ',' enumerator {$3:$1}
+
+enumerator :: {CEnumerator L.Range}
+  : variable {CEnumerator (info $1) $1 Nothing}
+  | variable '=' expr {CEnumerator (info $1 <-> info $3)  $1 (Just $3)}
+
 type_qual :: {CTypeQualifier L.Range}
   : const {CConst (L.rtRange $1)}
   | volatile {CVolatile (L.rtRange $1)}
@@ -234,6 +273,32 @@ parameter :: {CParameter L.Range}
 parameters ::  {[CParameter L.Range]}
   : parameter {[$1]}
   | parameters ',' parameter {$3 : $1}
+
+{-
+
+type_name
+	: specifier_qualifier_list
+	| specifier_qualifier_list abstract_declarator
+	;
+
+abstract_declarator
+	: pointer
+	| direct_abstract_declarator
+	| pointer direct_abstract_declarator
+	;
+
+direct_abstract_declarator
+	: '(' abstract_declarator ')'
+	| '[' ']'
+	| '[' constant_expression ']'
+	| direct_abstract_declarator '[' ']'
+	| direct_abstract_declarator '[' constant_expression ']'
+	| '(' ')'
+	| '(' parameter_type_list ')'
+	| direct_abstract_declarator '(' ')'
+	| direct_abstract_declarator '(' parameter_type_list ')'
+	;
+-}
 
 variable :: { CId L.Range }
   : identifier { unTok $1 (\range (L.Identifier iden) -> CId range $ BS.unpack iden) }
@@ -282,6 +347,7 @@ unary :: {CExpression L.Range}
   | '~' expr  {unTok $1 (\range (L.Complement) -> CUnary range (CCompOp range) $2)}
   | '!' expr  {unTok $1 (\range (L.Bang) -> CUnary range (CNegOp range) $2)}
   | sizeof expr {CSizeofExpr (L.rtRange $1 <-> info $2) $2}
+  | sizeof '(' declaration ')' {CSizeofType (L.rtRange $1 <-> L.rtRange $4) $3}
 
 binary :: {CExpression L.Range}
   : expr '+' expr {unTok $2 (\range (L.Plus) -> CBinary range (CAddOp range) $1 $3)}
@@ -313,6 +379,7 @@ expr :: {CExpression L.Range }
   | integer_const {unTok $1 (\range (L.IntConst int) -> CConstExpr $ IntConst range $ read $ BS.unpack int)}
   | float_const {unTok $1 (\range (L.FloatConst f) -> CConstExpr $ DblConst range $ read $ BS.unpack f)}
   | char_const {unTok $1 (\range (L.CharConst c) -> CConstExpr $ CharConst range $ read $ BS.unpack c)}
+  | string {unTok $1 (\range (L.StringLit s) -> CStringLit range (BS.unpack s))}
   | ternary {$1}
   | binary {$1}
   | unary {$1}
@@ -322,24 +389,25 @@ expr :: {CExpression L.Range }
   | index {$1}
   | '(' expr ')' {$2}
 
-
-
 stmt :: {CStatement L.Range}
   : if_stmt {CSelectStmt (info $1) $1}
   | block {$1}
-  | expr  {CExprStmt (info $1) (Just $1)}
+  | expr ';'  {CExprStmt (info $1) (Just $1)}
   | for_loop {CIterStmt (info $1) $1}
+  | while_loop {CIterStmt (info $1) $1}
+  | do_while {CIterStmt (info $1) $1}
+  | jump_stmt {CJmpStmt (info $1) $1}
+  | switch_stmt {CSelectStmt (info $1) $1}
+  | case_stmt {CCaseStmt (info $1) $1}
 
 block :: {CStatement L.Range}
   : '{' stmts '}' {CCompStmt (L.rtRange $1 <-> L.rtRange $3) Nothing (Just $ reverse $2)}
   | '{' declarations stmts '}' {CCompStmt (L.rtRange $1 <-> L.rtRange $4) (Just $ reverse $2) (Just $ reverse $3)}
 
 stmts :: {[CStatement L.Range]}
-  : stmts ';' stmt          { $3 : $1 }
-      | stmts ';'               { $1 }
-      | stmt  		{ [$1] }
-      | {- empty -}		{ [] }
-
+  : stmt {[$1]} 
+  | stmts stmt {$2:$1}
+ 
 declarations :: {[CDeclaration L.Range]}
   : declaration { [$1] }
   | declarations declaration {$2:$1}
@@ -352,14 +420,31 @@ expr_stmt :: {CExpression L.Range}
   : ';' {CNoOp (L.rtRange $1)}
   | expr ';' {$1}
 
+while_loop :: {CIterStatement L.Range}
+  : while '(' expr ')' block {CWhile (L.rtRange $1 <-> info $5) $3 $5}
+
 for_loop :: {CIterStatement L.Range}
-  : for '(' expr_stmt expr_stmt ')' block {CFor (L.rtRange $1 <-> info $6) (Just $3) (Just $4) Nothing $6}
-  | for '(' expr_stmt expr_stmt expr ')' block {CFor (L.rtRange $1 <-> info $7) (Just $3) (Just $4) (Just $5) $7}
+  : for '(' expr_stmt expr_stmt ')' stmt {CFor (L.rtRange $1 <-> info $6) (Just $3) (Just $4) Nothing $6}
+  | for '(' expr_stmt expr_stmt expr ')' stmt {CFor (L.rtRange $1 <-> info $7) (Just $3) (Just $4) (Just $5) $7}
 
+do_while :: {CIterStatement L.Range}
+  : do stmt while '(' expr ')' ';' {CDoWhile (L.rtRange $1 <-> L.rtRange $7) $2 $5}
 
+jump_stmt :: {CJmpStatement L.Range}
+  : goto variable ';' {CGoto (L.rtRange $1 <-> L.rtRange $3) $2}
+  | continue ';' {CContinue (L.rtRange $1 <-> L.rtRange $2)}
+  | break ';' {CBreak (L.rtRange $1 <-> L.rtRange $2)}
+  | return ';' {CReturn (L.rtRange $1 <-> L.rtRange $2) Nothing}
+  | return expr ';' {CReturn (L.rtRange $1 <-> L.rtRange $3) (Just $2)}
+
+switch_stmt :: {CSelectStatement L.Range}
+  : switch '(' expr ')' stmt {SwitchStmt (L.rtRange $1 <-> info $5) $3 $5}
+
+case_stmt :: {CCaseStatement L.Range}
+  : case  expr ':' stmt {CaseStmt (L.rtRange $1 <-> info $4) $2 $4} 
+  | default ':' stmt {DefaultStmt (L.rtRange $1 <-> info $3) (CDefaultTag (L.rtRange $1)) $3}
 
 {
-
   -- | Build a simple node by extracting its token type and range.
 unTok :: L.RangedToken -> (L.Range -> L.Token -> a) -> a
 unTok (L.RangedToken tok range) ctor = ctor range tok

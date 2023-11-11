@@ -27,7 +27,8 @@ int ops()
     z = (x << 8) + (y >> 8);
 
     x != y;
-    y &x | y ^ z;
+    y &x;
+    y ^ z;
 
     arr[i];
     ops();
