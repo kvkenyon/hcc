@@ -128,7 +128,7 @@ tokens :-
 <0> "<<" {tok LShift}
 <0> ">>" {tok RShift}
 <0> "==" {tok Eq}
-<0> "<=" {tok Le}
+<0> "<" {tok Le}
 <0> ">" {tok Gr}
 <0> "<=" {tok LEq}
 <0> ">=" {tok GEq}
@@ -168,6 +168,11 @@ tokens :-
 <comment> "*/" { unnestComment }
 <comment> .    ;
 <comment> \n   ;
+
+<0> "//" { startLineComment `andBegin` linecomment}
+<linecomment> "//" {startLineComment} 
+<linecomment> . ;
+<linecomment> \n   {endLineComment}
 
 -- Whitespace
 <0> $white+ ;
@@ -362,6 +367,13 @@ tokStringLit inp@(_, _, str, _) len =
       rtToken = StringLit $ BS.take len str
     , rtRange = mkRange inp len
     }
+
+startLineComment, endLineComment :: AlexAction RangedToken
+startLineComment input len = do
+  skip input len
+endLineComment input len = do
+  alexSetStartCode 0
+  skip input len
 
 nestComment, unnestComment :: AlexAction RangedToken
 nestComment input len = do

@@ -31,7 +31,7 @@ dependencies:
   - bytestring
   - process >= 1.6.14
   - text
-build-build-tool-depends:
+build-tool-depends:
   - happy
   - alex
 ghc-options:
