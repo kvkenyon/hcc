@@ -203,7 +203,7 @@ struct_declaration_list :: {[CStructDeclaration L.Range]}
   | struct_declaration_list struct_declaration {$2:$1}
 
 struct_declaration :: {CStructDeclaration L.Range}
-  : decl_spec struct_declarator_list ';' {CStructDecl (info $1 <-> L.rtRange $3) $1 $2} 
+  : specifier_qualifier_list struct_declarator_list ';' {CStructDecl (infos $1 <-> L.rtRange $3) $1 $2} 
 
 struct_declarator_list :: {[CStructDeclarator L.Range]}
   : struct_declarator {[$1]}
@@ -263,42 +263,50 @@ array_modifier :: {CTypeModifier L.Range}
   | '[' expr ']' {ArrayModifier (L.rtRange $1 <-> L.rtRange $3) $2 Nothing}
 
 func_modifier :: {CTypeModifier L.Range}
-  : '(' ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $2) [] []}
-  | '(' variables ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) (reverse $2) []}
-  | '(' parameters ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) [] $ reverse $2}
+  : '(' ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $2) [] Nothing}
+  | '(' variables ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) (reverse $2) Nothing}
+  | '(' parameter_type_list ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) [] (Just $2)}
 
 parameter :: {CParameter L.Range}
   :  decl_spec declarator {CParameter (info $1 <-> info $2) $1 $2}
+  | decl_spec abstract_declarator {CAbstractParam (info $1 <-> info $2) $1 $2}
+  | decl_spec {CNoDeclaratorParam (info $1) $1}
+
+parameter_type_list :: { CParameterTypeList L.Range }
+  : parameters {CParamTypeList (infos $1) $1 Nothing}
+  | parameters ',' '...' {CParamTypeList (infos $1) $1 (Just $ CEllipsis (L.rtRange $3))}
 
 parameters ::  {[CParameter L.Range]}
   : parameter {[$1]}
   | parameters ',' parameter {$3 : $1}
 
-{-
+type_name :: {CTypeName L.Range}
+  : specifier_qualifier_list {CTypeName (infos $1) $1 Nothing}
+  | specifier_qualifier_list abstract_declarator {CTypeName (infos $1 <-> info $2) $1 (Just $2)}
 
-type_name
-	: specifier_qualifier_list
-	| specifier_qualifier_list abstract_declarator
-	;
+specifier_qualifier_list :: {[CSpecifierQualifier L.Range]}
+  : specifier_qualifier {[$1]}
+  | specifier_qualifier_list specifier_qualifier {$2:$1}
 
-abstract_declarator
-	: pointer
-	| direct_abstract_declarator
-	| pointer direct_abstract_declarator
-	;
+specifier_qualifier :: {CSpecifierQualifier L.Range}
+  : type_spec {CTypeS (info $1) $1}
+  | type_qual {CTypeQ (info $1) $1}
 
-direct_abstract_declarator
-	: '(' abstract_declarator ')'
-	| '[' ']'
-	| '[' constant_expression ']'
-	| direct_abstract_declarator '[' ']'
-	| direct_abstract_declarator '[' constant_expression ']'
-	| '(' ')'
-	| '(' parameter_type_list ')'
-	| direct_abstract_declarator '(' ')'
-	| direct_abstract_declarator '(' parameter_type_list ')'
-	;
--}
+abstract_declarator :: {CAbstractDeclarator L.Range}
+  : pointer {CAbstractDeclarator (info $1) (Just $1) Nothing}
+  | direct_abstract_declarator {CAbstractDeclarator (info $1) Nothing (Just $1)}
+  | pointer direct_abstract_declarator {CAbstractDeclarator (info $1 <-> info $2) (Just $1) (Just $2)}
+
+direct_abstract_declarator :: {CDirectAbstractDeclarator L.Range}
+  : '(' abstract_declarator ')' {CDirectAbstractDeclarator (L.rtRange $1 <-> L.rtRange $3) $2}
+  | '[' ']' {CDirectArrayAbstractDeclarator (L.rtRange $1 <-> L.rtRange $2) Nothing Nothing}
+  | '[' expr ']' {CDirectArrayAbstractDeclarator (L.rtRange $1 <-> L.rtRange $3) Nothing (Just $2) }
+  | direct_abstract_declarator '[' ']' {CDirectArrayAbstractDeclarator (info $1 <-> L.rtRange $3) (Just $1) Nothing}
+  | direct_abstract_declarator '[' expr ']' {CDirectArrayAbstractDeclarator (info $1 <-> L.rtRange $4) (Just $1) (Just $3) }
+  | '(' ')' {CDirectFunctionAbstractDeclarator (L.rtRange $1 <-> L.rtRange $2) Nothing Nothing}
+  | '(' parameter_type_list ')' {CDirectFunctionAbstractDeclarator (L.rtRange $1 <-> L.rtRange $3) Nothing (Just $2)}
+  | direct_abstract_declarator '(' ')' {CDirectFunctionAbstractDeclarator (info $1 <-> L.rtRange $3) (Just $1) Nothing}
+  | direct_abstract_declarator '(' parameter_type_list ')' {CDirectFunctionAbstractDeclarator (info $1 <-> L.rtRange $4) (Just $1) (Just $3)}
 
 variable :: { CId L.Range }
   : identifier { unTok $1 (\range (L.Identifier iden) -> CId range $ BS.unpack iden) }
@@ -335,6 +343,9 @@ exprs : {- empty -}    { [] }
 index :: {CExpression L.Range}
   : expr '[' expr ']' {CIndex (info $1 <-> L.rtRange $4) $1 $3}
 
+cast :: {CExpression L.Range}
+  : '(' type_name ')' expr {CCast (L.rtRange $1 <-> L.rtRange $3) $2 $4}
+
 unary :: {CExpression L.Range}
   : '++' expr %prec PRE {unTok $1 (\range (L.Inc) -> CUnary range (CPreIncOp range) $2)}
   | expr '++' {unTok $2 (\range (L.Inc) -> CUnary range (CPostIncOp range) $1)}
@@ -347,7 +358,7 @@ unary :: {CExpression L.Range}
   | '~' expr  {unTok $1 (\range (L.Complement) -> CUnary range (CCompOp range) $2)}
   | '!' expr  {unTok $1 (\range (L.Bang) -> CUnary range (CNegOp range) $2)}
   | sizeof expr {CSizeofExpr (L.rtRange $1 <-> info $2) $2}
-  | sizeof '(' declaration ')' {CSizeofType (L.rtRange $1 <-> L.rtRange $4) $3}
+  | sizeof '(' type_name ')' {CSizeofType (L.rtRange $1 <-> L.rtRange $4) $3}
 
 binary :: {CExpression L.Range}
   : expr '+' expr {unTok $2 (\range (L.Plus) -> CBinary range (CAddOp range) $1 $3)}
@@ -376,8 +387,8 @@ ternary :: {CExpression L.Range}
 -- TODO: Update types to handle weird c-types like char with multiple chars
 expr :: {CExpression L.Range }
   : variable {CVar $1}
-  | integer_const {unTok $1 (\range (L.IntConst int) -> CConstExpr $ IntConst range $ read $ BS.unpack int)}
-  | float_const {unTok $1 (\range (L.FloatConst f) -> CConstExpr $ DblConst range $ read $ BS.unpack f)}
+  | integer_const {unTok $1 (\range (L.IntConst int) -> CConstExpr $ IntConst range $ BS.unpack int)}
+  | float_const {unTok $1 (\range (L.FloatConst f) -> CConstExpr $ DblConst range $ BS.unpack f)}
   | char_const {unTok $1 (\range (L.CharConst c) -> CConstExpr $ CharConst range $ read $ BS.unpack c)}
   | string {unTok $1 (\range (L.StringLit s) -> CStringLit range (BS.unpack s))}
   | ternary {$1}
@@ -388,6 +399,7 @@ expr :: {CExpression L.Range }
   | call {$1}
   | index {$1}
   | '(' expr ')' {$2}
+  | cast {$1}
 
 stmt :: {CStatement L.Range}
   : if_stmt {CSelectStmt (info $1) $1}

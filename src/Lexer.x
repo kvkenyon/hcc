@@ -30,23 +30,21 @@ $digit = [0-9]
 $alpha = [a-zA-Z]
 $char = $printable
 $escape_chars = [ \' \" \\ [abfnrt] ]
+$is = [uUlL] 
 
 $octdig = [0-7]
 $hexdig = [0-9A-Fa-f]
 $floating_suffix = [flFL]
 $exponent_suffix = [eE]
-$u = [U]
-$l = [L]
+
 
 -- Numerical Lexemes
 -- Integers
-@decinteger = (0 | [1-9]([$digit])*)
-@hexinteger   = ([0][xX]($hexdig)+)
-@octinteger = (0[oO]($octdig)+)
-@integer = (@decinteger | @hexinteger | @octinteger)
-@unsigned_int = ([Uu]@integer)
-@long_int = ([Ll]@integer)
-@unsigned_long_int = ( @integer)
+@is = ($is)*
+@decinteger = (0 | [1-9]([$digit])*@is?)
+@hexinteger   = ([0][xX]($hexdig)+@is?)
+@octinteger = (0[oO]($octdig)+@is?)
+@integer = @decinteger | @hexinteger | @octinteger
 
 -- Floating 
 @@sign = "+"|"-"
@@ -67,10 +65,7 @@ $l = [L]
 tokens :-
 -- Constants 
 <0> @floating_point_const {tokFloat}
-<0> "UL"@integer {tokInteger}
 <0> @integer { tokInteger }
-<0> @long_int {tokInteger}
-<0> @unsigned_int {tokInteger}
 <0> @char_const { tokChar }
 -- Keywords
 <0> auto {tok Auto}
