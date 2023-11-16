@@ -5,7 +5,7 @@
  *
  */
 int x;
-double y;
+double x;
 // redefinition of 'x' with a different type: 'double' vs 'const int'
 // double x;
 // non-static declaration of 'y' follows static declaration

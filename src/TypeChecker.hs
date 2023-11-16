@@ -112,7 +112,6 @@ data VarBinding a = VarBinding
   }
   deriving (Show, Eq)
 
-
 {--
 Type errors that we will report to the user
 --}
@@ -165,7 +164,7 @@ isBindingValid vb = do
   scope <- get
   case M.lookup (name vb) (varBindings scope) of
     Nothing -> return $ Right () 
-    Just b -> if b == vb then return $ Left Redefine else return $ Right () 
+    Just b -> if b /= vb then return $ Left Redefine else return $ Right () 
 
 addVarToScope :: VarBinding Range -> ScopeState  
 addVarToScope vb = do
