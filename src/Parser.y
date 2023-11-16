@@ -6,7 +6,6 @@ module Parser
 
 import Data.ByteString.Lazy.Char8 (ByteString)
 import Data.ByteString.Lazy.Char8 qualified as BS
-
 import Data.Maybe (fromJust)
 import Data.Monoid (First (..))
 import Syntax
@@ -163,11 +162,11 @@ initializer_list :: {[CInitializer L.Range]}
   | initializer_list ',' initializer {$3:$1}
 
 decl_spec :: {CDeclarationSpecifier L.Range}
-  : storage_spec decl_spec  {CStorageSpec (info $1 <-> info $2) $1 (Just [$2])}
+  : storage_spec decl_spec  {CStorageSpec (info $1 <-> info $2) $1 (Just $2)}
   | storage_spec {CStorageSpec (info $1) $1 Nothing}
-  | type_spec decl_spec {CTypeSpec (info $1 <-> info $2) $1 (Just [$2])}
+  | type_spec decl_spec {CTypeSpec (info $1 <-> info $2) $1 (Just $2)}
   | type_spec {CTypeSpec (info $1) $1 Nothing}
-  | type_qual decl_spec {CTypeQual (info $1 <-> info $2) $1 (Just [$2])}
+  | type_qual decl_spec {CTypeQual (info $1 <-> info $2) $1 (Just $2)}
   | type_qual {CTypeQual(info $1) $1 Nothing}
 
 storage_spec :: {CStorageClassSpecifier L.Range}
@@ -429,7 +428,7 @@ if_stmt :: {CSelectStatement L.Range}
   | if '(' expr ')' stmt else stmt {IfStmt (L.rtRange $1 <->info $7) $3 $5 (Just $7)}
 
 expr_stmt :: {CExpression L.Range}
-  : ';' {CNoOp (L.rtRange $1)}
+  : ';' {% pure $ CNoOp (L.rtRange $1)}
   | expr ';' {$1}
 
 while_loop :: {CIterStatement L.Range}
@@ -457,6 +456,7 @@ case_stmt :: {CCaseStatement L.Range}
   | default ':' stmt {DefaultStmt (L.rtRange $1 <-> info $3) (CDefaultTag (L.rtRange $1)) $3}
 
 {
+
   -- | Build a simple node by extracting its token type and range.
 unTok :: L.RangedToken -> (L.Range -> L.Token -> a) -> a
 unTok (L.RangedToken tok range) ctor = ctor range tok
@@ -482,5 +482,6 @@ parseError _ = do
   L.alexError $ "Parse error at line " <> show line <> ", column " <> show column
 
 lexer :: (L.RangedToken -> L.Alex a) -> L.Alex a
-lexer = (=<< L.alexMonadScan)
+lexer = (L.alexMonadScan >>=)
+
 }

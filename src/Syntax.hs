@@ -4,34 +4,34 @@
 module Syntax where
 
 data CId a = CId a String
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CTranslationUnit a where
   CTranslationUnit :: a -> [CExternalDeclaration a] -> CTranslationUnit a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CExternalDeclaration a where
   CFuncDefExt :: a -> CFunctionDef a -> CExternalDeclaration a
   CDeclExt :: a -> CDeclaration a -> CExternalDeclaration a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CFunctionDef a where
   CFunctionDef :: a -> CDeclarationSpecifier a -> CDeclarator a -> [CDeclaration a] -> CStatement a -> CFunctionDef a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CDeclaration a where
   CDeclaration :: a -> CDeclarationSpecifier a -> [CInitDeclarator a] -> CDeclaration a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CInitDeclarator a where
   CInitDeclarator :: a -> CDeclarator a -> Maybe (CInitializer a) -> CInitDeclarator a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CDeclarationSpecifier a where
-  CStorageSpec :: a -> CStorageClassSpecifier a -> Maybe [CDeclarationSpecifier a] -> CDeclarationSpecifier a
-  CTypeSpec :: a -> CTypeSpecifier a -> Maybe [CDeclarationSpecifier a] -> CDeclarationSpecifier a
-  CTypeQual :: a -> CTypeQualifier a -> Maybe [CDeclarationSpecifier a] -> CDeclarationSpecifier a
-  deriving (Show, Foldable)
+  CStorageSpec :: a -> CStorageClassSpecifier a -> Maybe (CDeclarationSpecifier a) -> CDeclarationSpecifier a
+  CTypeSpec :: a -> CTypeSpecifier a -> Maybe (CDeclarationSpecifier a) -> CDeclarationSpecifier a
+  CTypeQual :: a -> CTypeQualifier a -> Maybe (CDeclarationSpecifier a) -> CDeclarationSpecifier a
+  deriving (Show, Foldable, Eq)
 
 data CStorageClassSpecifier a where
   CAuto :: a -> CStorageClassSpecifier a
@@ -39,7 +39,7 @@ data CStorageClassSpecifier a where
   CStatic :: a -> CStorageClassSpecifier a
   CExtern :: a -> CStorageClassSpecifier a
   CTypeDef :: a -> CStorageClassSpecifier a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CTypeSpecifier a where
   CVoidType :: a -> CTypeSpecifier a
@@ -53,80 +53,80 @@ data CTypeSpecifier a where
   CUnsignedType :: a -> CTypeSpecifier a
   CStructType :: a -> CStructTypeSpecifier a -> CTypeSpecifier a
   CEnumType :: a -> CEnumTypeSpecifier a -> CTypeSpecifier a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CStructTypeSpecifier a where
   CStruct :: a -> StructOrUnion a -> Maybe (CId a) -> [CStructDeclaration a] -> CStructTypeSpecifier a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data StructOrUnion a = STRUCT a | UNION a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CStructDeclaration a where
   CStructDecl :: a -> [CSpecifierQualifier a] -> [CStructDeclarator a] -> CStructDeclaration a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CStructDeclarator a where
   CStructDeclarator :: a -> Maybe (CDeclarator a) -> Maybe (CExpression a) -> CStructDeclarator a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CEnumTypeSpecifier a where
   CEnumSpecifier :: a -> Maybe (CId a) -> [CEnumerator a] -> CEnumTypeSpecifier a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CEnumerator a where
   CEnumerator :: a -> CId a -> Maybe (CExpression a) -> CEnumerator a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CTypeQualifier a where
   CConst :: a -> CTypeQualifier a
   CVolatile :: a -> CTypeQualifier a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CDeclarator a where
   PtrDeclarator :: a -> CPointer a -> CDirectDeclarator a -> CDeclarator a
   Declarator :: a -> CDirectDeclarator a -> CDeclarator a
   StructDecl :: a -> CDeclarator a -> CExpression a -> CDeclarator a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CPointer a where
   CPointer :: a -> [CTypeQualifier a] -> Maybe (CPointer a) -> CPointer a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CDirectDeclarator a where
   CIdentDecl :: a -> CId a -> Maybe (CTypeModifier a) -> CDirectDeclarator a
   NestedDecl :: a -> CDeclarator a -> Maybe (CTypeModifier a) -> CDirectDeclarator a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CTypeModifier a where
   ArrayModifier :: a -> CExpression a -> Maybe (CTypeModifier a) -> CTypeModifier a
   FuncModifier :: a -> [CId a] -> Maybe (CParameterTypeList a) -> CTypeModifier a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CParameter a where
   CParameter :: a -> CDeclarationSpecifier a -> CDeclarator a -> CParameter a
   CAbstractParam :: a -> CDeclarationSpecifier a -> CAbstractDeclarator a -> CParameter a
   CNoDeclaratorParam :: a -> CDeclarationSpecifier a -> CParameter a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CParameterTypeList a = CParamTypeList a [CParameter a] (Maybe (CEllipsis a))
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 newtype CEllipsis a = CEllipsis a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CInitializer a where
   CInitializer :: a -> [CExpression a] -> [CInitializer a] -> CInitializer a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CTypeName a where
   CTypeName :: a -> [CSpecifierQualifier a] -> Maybe (CAbstractDeclarator a) -> CTypeName a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CSpecifierQualifier a where
   CTypeS :: a -> CTypeSpecifier a -> CSpecifierQualifier a
   CTypeQ :: a -> CTypeQualifier a -> CSpecifierQualifier a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 {--
 In several contexts (to specify type conversions explicitly with a cast, to declare parameter
@@ -136,13 +136,13 @@ an object of that type omitting the name of the object.
 --}
 data CAbstractDeclarator a where
   CAbstractDeclarator :: a -> Maybe (CPointer a) -> Maybe (CDirectAbstractDeclarator a) -> CAbstractDeclarator a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CDirectAbstractDeclarator a where
   CDirectAbstractDeclarator :: a -> CAbstractDeclarator a -> CDirectAbstractDeclarator a
   CDirectArrayAbstractDeclarator :: a -> Maybe (CDirectAbstractDeclarator a) -> Maybe (CExpression a) -> CDirectAbstractDeclarator a
   CDirectFunctionAbstractDeclarator :: a -> Maybe (CDirectAbstractDeclarator a) -> Maybe (CParameterTypeList a) -> CDirectAbstractDeclarator a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CTypeDefName a = CTypeDefName a (CId a)
 
@@ -153,36 +153,36 @@ data CStatement a where
   CSelectStmt :: a -> CSelectStatement a -> CStatement a
   CIterStmt :: a -> CIterStatement a -> CStatement a
   CJmpStmt :: a -> CJmpStatement a -> CStatement a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CSelectStatement a where
   IfStmt :: a -> CExpression a -> CStatement a -> Maybe (CStatement a) -> CSelectStatement a
   SwitchStmt :: a -> CExpression a -> CStatement a -> CSelectStatement a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 newtype CDefaultTag a = CDefaultTag a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CCaseStatement a where
   CaseStmt :: a -> CExpression a -> CStatement a -> CCaseStatement a
   DefaultStmt :: a -> CDefaultTag a -> CStatement a -> CCaseStatement a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CIterStatement a where
   CWhile :: a -> (CExpression a) -> CStatement a -> CIterStatement a
   CFor :: a -> Maybe (CExpression a) -> Maybe (CExpression a) -> Maybe (CExpression a) -> CStatement a -> CIterStatement a
   CDoWhile :: a -> CStatement a -> (CExpression a) -> CIterStatement a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CJmpStatement a where
   CGoto :: a -> CId a -> CJmpStatement a
   CContinue :: a -> CJmpStatement a
   CBreak :: a -> CJmpStatement a
   CReturn :: a -> Maybe (CExpression a) -> CJmpStatement a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CConstant a = IntConst a String | DblConst a String | CharConst a Char
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
 
 data CAssignOp a
   = Equal a
@@ -322,4 +322,4 @@ data CExpression a
     CConstExpr (CConstant a)
   | CStringLit a String
   | CNoOp a
-  deriving (Show, Foldable)
+  deriving (Show, Foldable, Eq)
