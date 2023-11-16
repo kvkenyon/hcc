@@ -4,7 +4,8 @@
  * Parsing C Declarators
  *
  */
-static const int x, y, z;
+int x;
+double y;
 // redefinition of 'x' with a different type: 'double' vs 'const int'
 // double x;
 // non-static declaration of 'y' follows static declaration

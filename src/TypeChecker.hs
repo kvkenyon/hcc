@@ -121,6 +121,7 @@ data TypeError
   | InvalidType String
   | TooManyStorageClassifiers
   | Redefine
+  deriving (Show)
 
 -- Create a shorthand type alias for the State monad
 type  ScopeState = State (Scope Range) (Either TypeError ())
