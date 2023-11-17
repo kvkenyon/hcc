@@ -14,7 +14,7 @@
             "startupFunc": "",
             "startupArgs": "",
             "stopOnEntry": false,
-            "mainArgs": "test/csrc/factorial.c",
+            "mainArgs": "test/csrc/declarators.c",
             "ghciPrompt": "H>>= ",
             "ghciInitialPrompt": "> ",
             "ghciCmd": "stack ghci --with-ghc=ghci-dap --test --no-load --no-build --main-is TARGET",
