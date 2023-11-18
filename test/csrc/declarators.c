@@ -6,21 +6,23 @@
  */
 
 static const char *(*(*var)())[10];
+int *var[5];
 // redefinition of 'x' with a different type: 'double' vs 'const int'
 // double x;
 // non-static declaration of 'y' follows static declaration
-// const int y;
+const int y;
 
 // redefinition of 'x' with a different type: 'int' vs 'const int'
 // static int x;
 // int *x2;
-// double y[12];
+double z[12];
 // char *z[12][12];
 // int *aptr[10]; // Declares an array of 10 pointers
-// int *const *const bptr[100][100];
-// int (*pointer)[100]; // Declares a pointer to an array of ten ints
+int *const *const bptr[100][100];
+int (*p)[100];
 // int f();
-// int f1(int (*pointer)[100]);
+int f1(int (*pointer)[100]);
+long *var(long, long);
 // int f2(char *z[12][12], int (*pointer)[100]);
 // // int f3(x, y, z);
 // const int some_object;

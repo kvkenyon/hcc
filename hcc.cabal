@@ -52,7 +52,6 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
-    , monad-loops
     , mtl
     , parsec
     , pretty-simple
@@ -83,7 +82,6 @@ executable hcc-exe
     , bytestring
     , containers
     , hcc
-    , monad-loops
     , mtl
     , parsec
     , pretty-simple
@@ -115,7 +113,6 @@ test-suite hcc-test
     , bytestring
     , containers
     , hcc
-    , monad-loops
     , mtl
     , parsec
     , pretty-simple

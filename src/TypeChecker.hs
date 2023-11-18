@@ -18,7 +18,6 @@ functions match the declarations.
 If there are type errors we will catch them and present them to the user.
 -}
 
-import Control.Monad.Loops (untilM)
 import Control.Monad.State
 import Data.Functor.Identity (Identity)
 import Data.Map qualified as M
@@ -139,17 +138,57 @@ getIdentifier
 type Stack = [String]
 
 pop :: State Stack String
-pop = state $ \(x : xs) -> (x, xs)
+pop = state f
+  where
+    f [] = ("", [])
+    f (x : xs) = (x, xs)
 
 push :: String -> State Stack ()
 push x = state $ \xs -> ((), x : xs)
 
+describeCTU :: CTranslationUnit L.Range -> State Stack String
+describeCTU (CTranslationUnit _ ext_decs) = do
+  es <- forM ext_decs describeExtDec
+  return $ concat es
+
+describeExtDec :: CExternalDeclaration L.Range -> State Stack String
+describeExtDec (CDeclExt _ decl) = describeDecl decl
+describeExtDec (CFuncDefExt _ decl) = describeFunc decl
+
+describeFunc :: CFunctionDef L.Range -> State Stack String
+describeFunc (CFunctionDef _ decl_specs declarator declarations _) = do
+  forM_ decl_specs describeDeclSpec
+  declar <- describeDeclarator declarator
+  rest <- purgeStack
+  params <- forM declarations describeDecl
+  return $ declar ++ unwords rest ++ "\n" ++ "Params: " ++ unwords params
+
 describeDecl :: CDeclaration L.Range -> State Stack String
 describeDecl (CDeclaration _ decl_specs inits) = do
-  let declstr = map show decl_specs
-  forM_ declstr push
+  forM_ decl_specs describeDeclSpec
   x <- mapM describeInitDecl inits
-  return $ concat x
+  rest <- purgeStack
+  return $ concat x ++ " " ++ unwords rest ++ "\n"
+
+describeDeclSpec :: CDeclarationSpecifier L.Range -> State Stack ()
+describeDeclSpec (CStorageSpec _ (CStatic _)) = push "static"
+describeDeclSpec (CStorageSpec _ (CAuto _)) = push "auto"
+describeDeclSpec (CStorageSpec _ (CRegister _)) = push "register"
+describeDeclSpec (CStorageSpec _ (CExtern _)) = push "extern"
+describeDeclSpec (CStorageSpec _ (CTypeDef _)) = push "typedef"
+describeDeclSpec (CTypeSpec _ (CDoubleType _)) = push "double"
+describeDeclSpec (CTypeSpec _ (CCharType _)) = push "char"
+describeDeclSpec (CTypeSpec _ (CFloatType _)) = push "float"
+describeDeclSpec (CTypeSpec _ (CLongType _)) = push "long"
+describeDeclSpec (CTypeSpec _ (CShortType _)) = push "short"
+describeDeclSpec (CTypeSpec _ (CVoidType _)) = push "void"
+describeDeclSpec (CTypeSpec _ (CIntType _)) = push "int"
+describeDeclSpec (CTypeSpec _ (CSignedType _)) = push "signed"
+describeDeclSpec (CTypeSpec _ (CUnsignedType _)) = push "unsigned"
+describeDeclSpec (CTypeSpec _ (CStructType _ _)) = push "struct"
+describeDeclSpec (CTypeSpec _ (CEnumType _ _)) = push "enum"
+describeDeclSpec (CTypeQual _ (CConst _)) = push "const"
+describeDeclSpec (CTypeQual _ (CVolatile _)) = push "volatile"
 
 describeInitDecl :: CInitDeclarator L.Range -> State Stack String
 describeInitDecl (CInitDeclarator _ decl _) = describeDeclarator decl
@@ -158,7 +197,7 @@ describeDeclarator :: CDeclarator L.Range -> State Stack String
 describeDeclarator (PtrDeclarator _ ptr dd) = do
   describePtr ptr
   describeDirectDecl dd
-describeDeclarator (Declarator _ dd) = undefined
+describeDeclarator (Declarator _ dd) = describeDirectDecl dd
 describeDeclarator (StructDecl _ decl expr) = undefined
 
 describePtr :: CPointer L.Range -> State Stack ()
@@ -167,32 +206,59 @@ describePtr (CPointer _ _ (Just ptr)) = do
   describePtr ptr
 describePtr (CPointer _ _ Nothing) = push "*"
 
-describeDirectDecl :: CDirectDeclarator a -> State Stack String
-describeDirectDecl (CIdentDecl _ (CId _ ident) (Just typeMod)) = undefined
-describeDirectDecl (CIdentDecl _ (CId _ ident) Nothing) = do
+describeDirectDecl :: CDirectDeclarator L.Range -> State Stack String
+describeDirectDecl (CIdentDecl _ (CId _ ident) (Just typeMod)) = do
+  typeModStr <- describeTypeMod typeMod
   ptrs <- popUntilLeftTerminator
+  return $ ident ++ " " ++ typeModStr ++ " " ++ unwords ptrs
+describeDirectDecl (CIdentDecl _ (CId _ ident) Nothing) = do
+  -- process type mods right (there are none due to nothing)
+  ptrs <- popUntilLeftTerminator
+
   return $ ident ++ " " ++ unwords ptrs
-describeDirectDecl (NestedDecl _ decl Nothing) = undefined
-describeDirectDecl (NestedDecl _ decl (Just typemod)) = undefined
+describeDirectDecl (NestedDecl _ decl Nothing) = do
+  push "("
+  s <- describeDeclarator decl
+  ptrs <- popUntilLeftTerminator
+  return $ s ++ " " ++ unwords ptrs
+describeDirectDecl (NestedDecl _ decl (Just typemod)) = do
+  push "("
+  s <- describeDeclarator decl
+  tm <- describeTypeMod typemod
+  ptrs <- popUntilLeftTerminator
+  return $ s ++ " " ++ tm ++ " " ++ unwords ptrs
 
 describeTypeMod :: CTypeModifier L.Range -> State Stack String
-describeTypeMod (ArrayModifier _ _ Nothing) = return "array of "
-describeTypeMod (ArrayModifier _ _ (Just type_mod)) = undefined
-describeTypeMod (FuncModifier _ ids Nothing) = undefined
-describeTypeMod (FuncModifier _ _ (Just params)) = undefined
+describeTypeMod (ArrayModifier _ _ Nothing) = return "array"
+describeTypeMod (ArrayModifier _ _ (Just type_mod)) = do
+  tm <- describeTypeMod type_mod
+  return $ "array " ++ tm
+describeTypeMod (FuncModifier _ ids Nothing) = return "func"
+describeTypeMod (FuncModifier _ _ (Just params)) = return "func w/ params"
 
 -- Helpers
 
-leftTerminators :: [String]
-leftTerminators = ["CVoidType", "CCharType", "CShortType", "CIntType", "("]
+purgeStack :: StateT Stack Identity [String]
+purgeStack = loop id
+  where
+    loop f = do
+      x <- pop
+      if x /= ""
+        then loop (f . (x :))
+        else return (f [])
 
 popUntilLeftTerminator :: StateT Stack Identity [String]
 popUntilLeftTerminator = loop id
   where
     loop f = do
       x <- pop
-      if x == "*"
+      if x == "*" || x == "CConst" || x == "CVolatile"
         then loop (f . (x :))
         else do
-          push x
-          return (f [])
+          if x == "("
+            then return (f [])
+            else
+              ( do
+                  push x
+                  return (f [])
+              )
