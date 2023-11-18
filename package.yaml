@@ -33,6 +33,7 @@ dependencies:
   - process >= 1.6.14
   - text
   - mtl
+  - monad-loops
 build-tool-depends:
   - happy
   - alex

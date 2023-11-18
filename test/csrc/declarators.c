@@ -4,7 +4,8 @@
  * Parsing C Declarators
  *
  */
-int (*ptar)[10];
+
+static const char *(*(*var)())[10];
 // redefinition of 'x' with a different type: 'double' vs 'const int'
 // double x;
 // non-static declaration of 'y' follows static declaration

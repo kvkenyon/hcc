@@ -138,11 +138,11 @@ external_declarations :: {[CExternalDeclaration L.Range]}
   | external_declarations external_declaration {$2:$1}
 
 function_definition :: {CFunctionDef L.Range}
-  : decl_spec declarator block {CFunctionDef (info $1 <-> info $3) $1 $2 [] $3}
+  : decl_specs declarator block {CFunctionDef (infos $1 <-> info $3) $1 $2 [] $3}
 
 declaration :: {CDeclaration L.Range}
-  : decl_spec ';' {CDeclaration (info $1) $1 []}
-  | decl_spec init_declarator_list ';' {CDeclaration (info $1 <-> L.rtRange $3) $1 $2}
+  : decl_specs ';' {CDeclaration (infos $1) $1 []}
+  | decl_specs init_declarator_list ';' {CDeclaration (infos $1 <-> L.rtRange $3) $1 $2}
 
 init_declarator_list :: {[CInitDeclarator L.Range]}
   : init_declarator {[$1]}
@@ -161,13 +161,14 @@ initializer_list :: {[CInitializer L.Range]}
   : initializer {[$1]}
   | initializer_list ',' initializer {$3:$1}
 
+decl_specs :: {[CDeclarationSpecifier L.Range]}
+  : decl_spec {[$1]}
+  | decl_specs decl_spec {$2:$1}
+
 decl_spec :: {CDeclarationSpecifier L.Range}
-  : storage_spec decl_spec  {CStorageSpec (info $1 <-> info $2) $1 (Just $2)}
-  | storage_spec {CStorageSpec (info $1) $1 Nothing}
-  | type_spec decl_spec {CTypeSpec (info $1 <-> info $2) $1 (Just $2)}
-  | type_spec {CTypeSpec (info $1) $1 Nothing}
-  | type_qual decl_spec {CTypeQual (info $1 <-> info $2) $1 (Just $2)}
-  | type_qual {CTypeQual(info $1) $1 Nothing}
+  : storage_spec {CStorageSpec (info $1) $1 }
+  | type_spec {CTypeSpec (info $1) $1 }
+  | type_qual {CTypeQual(info $1) $1 }
 
 storage_spec :: {CStorageClassSpecifier L.Range}
   : auto {CAuto (L.rtRange $1)}
@@ -247,7 +248,7 @@ pointer :: {CPointer L.Range}
 direct_decl :: {CDirectDeclarator L.Range}
   : ident_decl {$1}
   | '(' declarator ')' {NestedDecl (info $2) $2 Nothing}
-  | '(' declarator ')' type_modifier {NestedDecl (L.rtRange $1 <-> info $4) $2 (Just $4)}
+  | '(' declarator ')' type_modifier {NestedDecl (L.rtRange $1 <-> info $4) $2 (Just $4)}   
 
 ident_decl :: {CDirectDeclarator L.Range}
   : variable type_modifier {CIdentDecl (info $1 <-> info $2) $1 (Just $2)}
@@ -267,9 +268,9 @@ func_modifier :: {CTypeModifier L.Range}
   | '(' parameter_type_list ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $3) [] (Just $2)}
 
 parameter :: {CParameter L.Range}
-  :  decl_spec declarator {CParameter (info $1 <-> info $2) $1 $2}
-  | decl_spec abstract_declarator {CAbstractParam (info $1 <-> info $2) $1 $2}
-  | decl_spec {CNoDeclaratorParam (info $1) $1}
+  :  decl_specs declarator {CParameter (infos $1 <-> info $2) $1 $2}
+  | decl_specs abstract_declarator {CAbstractParam (infos $1 <-> info $2) $1 $2}
+  | decl_specs {CNoDeclaratorParam (infos $1) $1}
 
 parameter_type_list :: { CParameterTypeList L.Range }
   : parameters {CParamTypeList (infos $1) $1 Nothing}

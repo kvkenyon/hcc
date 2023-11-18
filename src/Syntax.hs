@@ -16,11 +16,11 @@ data CExternalDeclaration a where
   deriving (Show, Foldable, Eq)
 
 data CFunctionDef a where
-  CFunctionDef :: a -> CDeclarationSpecifier a -> CDeclarator a -> [CDeclaration a] -> CStatement a -> CFunctionDef a
+  CFunctionDef :: a -> [CDeclarationSpecifier a] -> CDeclarator a -> [CDeclaration a] -> CStatement a -> CFunctionDef a
   deriving (Show, Foldable, Eq)
 
 data CDeclaration a where
-  CDeclaration :: a -> CDeclarationSpecifier a -> [CInitDeclarator a] -> CDeclaration a
+  CDeclaration :: a -> [CDeclarationSpecifier a] -> [CInitDeclarator a] -> CDeclaration a
   deriving (Show, Foldable, Eq)
 
 data CInitDeclarator a where
@@ -28,9 +28,9 @@ data CInitDeclarator a where
   deriving (Show, Foldable, Eq)
 
 data CDeclarationSpecifier a where
-  CStorageSpec :: a -> CStorageClassSpecifier a -> Maybe (CDeclarationSpecifier a) -> CDeclarationSpecifier a
-  CTypeSpec :: a -> CTypeSpecifier a -> Maybe (CDeclarationSpecifier a) -> CDeclarationSpecifier a
-  CTypeQual :: a -> CTypeQualifier a -> Maybe (CDeclarationSpecifier a) -> CDeclarationSpecifier a
+  CStorageSpec :: a -> CStorageClassSpecifier a -> CDeclarationSpecifier a
+  CTypeSpec :: a -> CTypeSpecifier a -> CDeclarationSpecifier a
+  CTypeQual :: a -> CTypeQualifier a -> CDeclarationSpecifier a
   deriving (Show, Foldable, Eq)
 
 data CStorageClassSpecifier a where
@@ -104,9 +104,9 @@ data CTypeModifier a where
   deriving (Show, Foldable, Eq)
 
 data CParameter a where
-  CParameter :: a -> CDeclarationSpecifier a -> CDeclarator a -> CParameter a
-  CAbstractParam :: a -> CDeclarationSpecifier a -> CAbstractDeclarator a -> CParameter a
-  CNoDeclaratorParam :: a -> CDeclarationSpecifier a -> CParameter a
+  CParameter :: a -> [CDeclarationSpecifier a] -> CDeclarator a -> CParameter a
+  CAbstractParam :: a -> [CDeclarationSpecifier a] -> CAbstractDeclarator a -> CParameter a
+  CNoDeclaratorParam :: a -> [CDeclarationSpecifier a] -> CParameter a
   deriving (Show, Foldable, Eq)
 
 data CParameterTypeList a = CParamTypeList a [CParameter a] (Maybe (CEllipsis a))

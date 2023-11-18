@@ -18,10 +18,13 @@ functions match the declarations.
 If there are type errors we will catch them and present them to the user.
 -}
 
+import Control.Monad.Loops (untilM)
 import Control.Monad.State
+import Data.Functor.Identity (Identity)
 import Data.Map qualified as M
 import EitherT (EitherT (..), throwE)
 import Lexer (Range)
+import Lexer qualified as L
 import Scope
 import Syntax
 
@@ -67,7 +70,7 @@ typecheck (CTranslationUnit _ extDecls) = do
 typeCheckExtDecl :: CExternalDeclaration Range -> TypeChecker ()
 typeCheckExtDecl (CDeclExt _ (CDeclaration _ decl_specs inits)) = TC $ do
   let types = getTypes decl_specs
-  let qual = getQualifier decl_specs
+  let qual = getQualifiers decl_specs
   let ids = processInitDecls inits
   let binds = map (buildVarBinding types stg qual) ids
   forM_ binds modifyVarBinding
@@ -105,20 +108,20 @@ addVarToScope vb = do
   return ()
 
 -- Process Declaration Specifiers
-getTypes :: CDeclarationSpecifier Range -> [CTypeSpecifier Range]
-getTypes (CTypeSpec _ type_spec Nothing) = [type_spec]
-getTypes (CTypeSpec _ type_spec (Just next_decl)) = type_spec : getTypes next_decl
-getTypes _ = []
+getTypes :: [CDeclarationSpecifier Range] -> [CTypeSpecifier Range]
+getTypes [] = []
+getTypes ((CTypeSpec _ type_spec) : decl_specs) = type_spec : getTypes decl_specs
+getTypes (_ : xs) = getTypes xs
 
-getQualifier :: CDeclarationSpecifier Range -> [CTypeQualifier Range]
-getQualifier (CTypeQual _ type_qual Nothing) = [type_qual]
-getQualifier (CTypeQual _ type_qual (Just next_decl)) = type_qual : getQualifier next_decl
-getQualifier _ = []
+getQualifiers :: [CDeclarationSpecifier Range] -> [CTypeQualifier Range]
+getQualifiers [] = []
+getQualifiers ((CTypeQual _ type_qual) : decl_specs) = type_qual : getQualifiers decl_specs
+getQualifiers (_ : xs) = getQualifiers xs
 
-getStorage :: CDeclarationSpecifier Range -> [CStorageClassSpecifier Range]
-getStorage (CStorageSpec _ storage_spec Nothing) = [storage_spec]
-getStorage (CStorageSpec _ storage_spec (Just next_decl)) = storage_spec : getStorage next_decl
-getStorage _ = []
+getStorage :: [CDeclarationSpecifier Range] -> [CStorageClassSpecifier Range]
+getStorage [] = []
+getStorage ((CStorageSpec _ strg) : decl_specs) = strg : getStorage decl_specs
+getStorage (_ : xs) = getStorage xs
 
 -- Process Initializers
 -- getInitializer :: CInitDeclarator Range ->
@@ -133,19 +136,63 @@ getIdentifier
       (CIdentDecl _ (CId _ identifier) Nothing)
     ) = show identifier
 
-describeDecl :: CDeclaration a -> String
-describeDecl (CDeclaration _ decl inits) = undefined
+type Stack = [String]
 
-describeIdent :: CInitDeclarator a -> String
-describeIdent (CInitDeclarator _ decl _) = undefined
+pop :: State Stack String
+pop = state $ \(x : xs) -> (x, xs)
 
-describeDeclarator :: CDeclarator a -> String
-describeDeclarator (PtrDeclarator _ ptr dd) = undefined
+push :: String -> State Stack ()
+push x = state $ \xs -> ((), x : xs)
+
+describeDecl :: CDeclaration L.Range -> State Stack String
+describeDecl (CDeclaration _ decl_specs inits) = do
+  let declstr = map show decl_specs
+  forM_ declstr push
+  x <- mapM describeInitDecl inits
+  return $ concat x
+
+describeInitDecl :: CInitDeclarator L.Range -> State Stack String
+describeInitDecl (CInitDeclarator _ decl _) = describeDeclarator decl
+
+describeDeclarator :: CDeclarator L.Range -> State Stack String
+describeDeclarator (PtrDeclarator _ ptr dd) = do
+  describePtr ptr
+  describeDirectDecl dd
 describeDeclarator (Declarator _ dd) = undefined
 describeDeclarator (StructDecl _ decl expr) = undefined
 
-describeDirectDecl :: CDirectDeclarator a -> String
-describeDirectDecl (CIdentDecl _ ident (Just typeMod)) = undefined
-describeDirectDecl (CIdentDecl _ (CId _ ident) Nothing) = "Declare " ++ ident ++ "as "
+describePtr :: CPointer L.Range -> State Stack ()
+describePtr (CPointer _ _ (Just ptr)) = do
+  push "*"
+  describePtr ptr
+describePtr (CPointer _ _ Nothing) = push "*"
+
+describeDirectDecl :: CDirectDeclarator a -> State Stack String
+describeDirectDecl (CIdentDecl _ (CId _ ident) (Just typeMod)) = undefined
+describeDirectDecl (CIdentDecl _ (CId _ ident) Nothing) = do
+  ptrs <- popUntilLeftTerminator
+  return $ ident ++ " " ++ unwords ptrs
 describeDirectDecl (NestedDecl _ decl Nothing) = undefined
 describeDirectDecl (NestedDecl _ decl (Just typemod)) = undefined
+
+describeTypeMod :: CTypeModifier L.Range -> State Stack String
+describeTypeMod (ArrayModifier _ _ Nothing) = return "array of "
+describeTypeMod (ArrayModifier _ _ (Just type_mod)) = undefined
+describeTypeMod (FuncModifier _ ids Nothing) = undefined
+describeTypeMod (FuncModifier _ _ (Just params)) = undefined
+
+-- Helpers
+
+leftTerminators :: [String]
+leftTerminators = ["CVoidType", "CCharType", "CShortType", "CIntType", "("]
+
+popUntilLeftTerminator :: StateT Stack Identity [String]
+popUntilLeftTerminator = loop id
+  where
+    loop f = do
+      x <- pop
+      if x == "*"
+        then loop (f . (x :))
+        else do
+          push x
+          return (f [])
