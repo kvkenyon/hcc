@@ -190,6 +190,10 @@ describeDeclSpec (CTypeSpec _ (CEnumType _ _)) = push "enum"
 describeDeclSpec (CTypeQual _ (CConst _)) = push "const"
 describeDeclSpec (CTypeQual _ (CVolatile _)) = push "volatile"
 
+describeTypeQual :: CTypeQualifier L.Range -> State Stack ()
+describeTypeQual ((CConst _)) = push "const"
+describeTypeQual ((CVolatile _)) = push "volatile"
+
 describeInitDecl :: CInitDeclarator L.Range -> State Stack String
 describeInitDecl (CInitDeclarator _ decl _) = describeDeclarator decl
 
@@ -201,10 +205,11 @@ describeDeclarator (Declarator _ dd) = describeDirectDecl dd
 describeDeclarator (StructDecl _ decl expr) = undefined
 
 describePtr :: CPointer L.Range -> State Stack ()
-describePtr (CPointer _ _ (Just ptr)) = do
+describePtr (CPointer _ type_quals (Just ptr)) = do
   push "*"
+  forM_ type_quals describeTypeQual
   describePtr ptr
-describePtr (CPointer _ _ Nothing) = push "*"
+describePtr (CPointer _ type_quals Nothing) = push "*"
 
 describeDirectDecl :: CDirectDeclarator L.Range -> State Stack String
 describeDirectDecl (CIdentDecl _ (CId _ ident) (Just typeMod)) = do
