@@ -1,9 +1,6 @@
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
-
 module Main (main) where
 
-import Control.Monad.State (evalState, runState)
-import Control.Monad.State.Lazy (State)
+import Control.Monad.State (runState)
 import Data.ByteString.Lazy.Char8 qualified as BS
 import Lexer (runAlex)
 import Lexer qualified as L
@@ -14,32 +11,41 @@ import System.Environment (getArgs)
 import Text.Pretty.Simple (pPrint)
 import TypeChecker (Stack, describeCTU, runTypeChecker, typecheck)
 
--- run :: String -> IO ()
--- run fileName = do
---   s <- readFile fileName
---   case runAlex (BS.pack s) clang of
---     Left err -> print err
---     Right p -> pPrint p
+runAST :: String -> IO ()
+runAST fileName = do
+  s <- readFile fileName
+  case runAlex (BS.pack s) clang of
+    Left err -> print err
+    Right p -> pPrint p
 
--- Right p -> case runTypeChecker (typecheck p) globalScope of
---   (Left err, _) -> pPrint err
---   (Right (), scope) -> do
---     pPrint p
---     pPrint scope
+runScope :: String -> IO ()
+runScope fileName = do
+  src <- readFile fileName
+  case runAlex (BS.pack src) clang of
+    Left err -> pPrint err
+    Right p -> case runTypeChecker (typecheck p) globalScope of
+      (Left err, _) -> pPrint err
+      (Right (), scope) -> pPrint scope
 
-describe :: CTranslationUnit L.Range -> (String, Stack)
-describe ctu = runState (describeCTU ctu) []
+describeTypes :: CTranslationUnit L.Range -> (String, Stack)
+describeTypes ctu = runState (describeCTU ctu) []
 
 runDescribe :: String -> IO ()
 runDescribe fileName = do
   s <- readFile fileName
   case runAlex (BS.pack s) clang of
     Left err -> print err
-    Right p -> putStrLn . fst $ describe p
+    Right p -> putStrLn . fst $ describeTypes p
 
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [] -> putStrLn "Please provide a file name."
-    (fname : _) -> runDescribe fname
+    [fname, "-d"] -> runDescribe fname
+    [fname, "-a"] -> runAST fname
+    [fname, "-s"] -> runScope fname
+    _ ->
+      putStrLn $
+        "Usage: hcc filename -d (describe types)\n"
+          ++ "       hcc filename  -a (print AST)\n"
+          ++ "       hcc filename  -s (print Scope)\n"

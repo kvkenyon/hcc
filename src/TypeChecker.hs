@@ -209,7 +209,9 @@ describePtr (CPointer _ type_quals (Just ptr)) = do
   push "*"
   forM_ type_quals describeTypeQual
   describePtr ptr
-describePtr (CPointer _ type_quals Nothing) = push "*"
+describePtr (CPointer _ type_quals Nothing) = do
+  push "*"
+  forM_ type_quals describeTypeQual
 
 describeDirectDecl :: CDirectDeclarator L.Range -> State Stack String
 describeDirectDecl (CIdentDecl _ (CId _ ident) (Just typeMod)) = do
@@ -238,8 +240,24 @@ describeTypeMod (ArrayModifier _ _ Nothing) = return "array"
 describeTypeMod (ArrayModifier _ _ (Just type_mod)) = do
   tm <- describeTypeMod type_mod
   return $ "array " ++ tm
-describeTypeMod (FuncModifier _ ids Nothing) = return "func"
-describeTypeMod (FuncModifier _ _ (Just params)) = return "func w/ params"
+describeTypeMod (FuncModifier _ ids Nothing) = do
+  return $ "func " ++ concat idstrs
+  where
+    idstr (CId _ s) = s
+    idstrs = map idstr ids
+describeTypeMod (FuncModifier _ _ (Just (CParamTypeList _ params Nothing))) = do
+  x <- forM params describeParam
+  return $ "func of " ++ concat x
+describeTypeMod (FuncModifier _ _ (Just (CParamTypeList _ params (Just _)))) = do
+  x <- forM params describeParam
+  return $ "variadic func of " ++ concat x
+
+describeParam :: CParameter L.Range -> State Stack String
+describeParam (CParameter _ decl_specs decl) = do
+  forM_ decl_specs describeDeclSpec
+  x <- describeDeclarator decl
+  return $ x ++ " "
+describeParam _ = return "abstract func"
 
 -- Helpers
 

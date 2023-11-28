@@ -1,10 +1,10 @@
 name: hcc
 version: 0.1.0.0
-github: "githubuser/hcc"
+github: "kvkenyon/hcc"
 license: BSD-3-Clause
-author: "Author name here"
-maintainer: "example@example.com"
-copyright: "2023 Author name here"
+author: "Kevin Kenyon"
+maintainer: "kwkenyon@protonmail.com"
+copyright: "2023 Kevin Kenyon"
 
 extra-source-files:
   - README.md
@@ -33,7 +33,7 @@ dependencies:
   - process >= 1.6.14
   - text
   - mtl
-build-tool-depends:
+build-tools:
   - happy
   - alex
 ghc-options:

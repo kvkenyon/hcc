@@ -259,8 +259,10 @@ type_modifier :: {CTypeModifier L.Range}
   | func_modifier  {$1}
 
 array_modifier :: {CTypeModifier L.Range}
-  : '[' expr ']' type_modifier {ArrayModifier (L.rtRange $1 <-> info $4) $2 (Just $4)}
-  | '[' expr ']' {ArrayModifier (L.rtRange $1 <-> L.rtRange $3) $2 Nothing}
+  : '[' expr ']' array_modifier {ArrayModifier (L.rtRange $1 <-> info $4) (Just $2) (Just $4)}
+  | '[' expr ']' {ArrayModifier (L.rtRange $1 <-> L.rtRange $3) (Just $2) Nothing}
+  | '[' ']' {ArrayModifier (L.rtRange $1 <-> L.rtRange $2) Nothing Nothing}
+  | '[' ']' array_modifier  {ArrayModifier (L.rtRange $1 <->info $3) Nothing (Just $3)}
 
 func_modifier :: {CTypeModifier L.Range}
   : '(' ')' {FuncModifier (L.rtRange $1 <-> L.rtRange $2) [] Nothing}

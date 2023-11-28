@@ -99,7 +99,7 @@ data CDirectDeclarator a where
   deriving (Show, Foldable, Eq)
 
 data CTypeModifier a where
-  ArrayModifier :: a -> CExpression a -> Maybe (CTypeModifier a) -> CTypeModifier a
+  ArrayModifier :: a -> Maybe (CExpression a) -> Maybe (CTypeModifier a) -> CTypeModifier a
   FuncModifier :: a -> [CId a] -> Maybe (CParameterTypeList a) -> CTypeModifier a
   deriving (Show, Foldable, Eq)
 
