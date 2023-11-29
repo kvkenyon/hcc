@@ -20,6 +20,7 @@ If there are type errors we will catch them and present them to the user.
 
 import Control.Monad.State
 import Data.Functor.Identity (Identity)
+import Data.List (intercalate)
 import Data.Map qualified as M
 import EitherT (EitherT (..), throwE)
 import Lexer (Range)
@@ -156,12 +157,11 @@ describeExtDec (CDeclExt _ decl) = describeDecl decl
 describeExtDec (CFuncDefExt _ decl) = describeFunc decl
 
 describeFunc :: CFunctionDef L.Range -> State Stack String
-describeFunc (CFunctionDef _ decl_specs declarator declarations _) = do
+describeFunc (CFunctionDef _ decl_specs declarator _ _) = do
   forM_ decl_specs describeDeclSpec
   declar <- describeDeclarator declarator
   rest <- purgeStack
-  params <- forM declarations describeDecl
-  return $ declar ++ unwords rest ++ "\n" ++ "Params: " ++ unwords params
+  return $ declar ++ unwords rest ++ "\n"
 
 describeDecl :: CDeclaration L.Range -> State Stack String
 describeDecl (CDeclaration _ decl_specs inits) = do
@@ -233,33 +233,38 @@ describeDirectDecl (NestedDecl _ decl (Just typemod)) = do
   s <- describeDeclarator decl
   tm <- describeTypeMod typemod
   ptrs <- popUntilLeftTerminator
-  return $ s ++ " " ++ tm ++ " " ++ unwords ptrs
+  return $ s ++ " " ++ tm ++ unwords ptrs
 
 describeTypeMod :: CTypeModifier L.Range -> State Stack String
-describeTypeMod (ArrayModifier _ _ Nothing) = return "array"
+describeTypeMod (ArrayModifier _ _ Nothing) = return "array "
 describeTypeMod (ArrayModifier _ _ (Just type_mod)) = do
   tm <- describeTypeMod type_mod
   return $ "array " ++ tm
+describeTypeMod (FuncModifier _ [] Nothing) = return "func returning"
 describeTypeMod (FuncModifier _ ids Nothing) = do
-  return $ "func " ++ concat idstrs
+  return $ "func of idents (" ++ intercalate ", " idstrs ++ ") returning"
   where
     idstr (CId _ s) = s
     idstrs = map idstr ids
 describeTypeMod (FuncModifier _ _ (Just (CParamTypeList _ params Nothing))) = do
   x <- forM params describeParam
-  return $ "func of " ++ concat x
+  return $ "func of params (" ++ intercalate ", " x ++ ") returning"
 describeTypeMod (FuncModifier _ _ (Just (CParamTypeList _ params (Just _)))) = do
   x <- forM params describeParam
-  return $ "variadic func of " ++ concat x
+  return $ "variadic func of params (" ++ intercalate ", " x ++ ") returning"
 
 describeParam :: CParameter L.Range -> State Stack String
 describeParam (CParameter _ decl_specs decl) = do
   forM_ decl_specs describeDeclSpec
   x <- describeDeclarator decl
-  return $ x ++ " "
+  rest <- popN (length decl_specs)
+  return $ x ++ unwords rest
 describeParam _ = return "abstract func"
 
 -- Helpers
+
+popN :: Int -> StateT Stack Identity [String]
+popN n = replicateM n pop
 
 purgeStack :: StateT Stack Identity [String]
 purgeStack = loop id
